@@ -1,0 +1,31 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tags",
+  "info": {
+    "name": "Tag",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "visible": {
+      "type": "boolean",
+      "default": true,
+      "required": true,
+      "private": true
+    },
+    "jokes": {
+      "via": "tags",
+      "collection": "joke",
+      "dominant": true
+    }
+  }
+}

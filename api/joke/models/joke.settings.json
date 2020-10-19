@@ -1,0 +1,58 @@
+{
+  "kind": "collectionType",
+  "collectionName": "jokes",
+  "info": {
+    "name": "Joke",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "content": {
+      "type": "text",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "pending",
+        "community_approved",
+        "community_rejected",
+        "admin_approved",
+        "admin_rejected"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "moderated_up": {
+      "type": "integer",
+      "default": 0,
+      "required": true
+    },
+    "moderated_down": {
+      "type": "integer",
+      "required": true,
+      "default": 0
+    },
+    "tags": {
+      "collection": "tag",
+      "via": "jokes"
+    },
+    "author": {
+      "plugin": "users-permissions",
+      "model": "user",
+      "via": "jokes"
+    },
+    "comments": {
+      "collection": "comment",
+      "via": "joke"
+    }
+  }
+}

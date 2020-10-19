@@ -1,2 +1,3 @@
-# js_strapi_f6sny
- an API for F6sny.com
+# Strapi application
+
+A quick description of your strapi application
