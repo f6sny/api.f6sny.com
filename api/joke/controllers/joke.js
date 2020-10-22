@@ -35,6 +35,30 @@ module.exports = {
 			model: strapi.models.joke
 		});
     },
+
+    /**
+   * Retrieve records.
+   *
+   * @return {Array}
+   */
+
+  async find(ctx) {
+    let entities;
+    ctx.query = {
+        ...ctx.query,
+        _limit: 20,
+      };
+  
+
+    if (ctx.query._q) {
+        
+      entities = await strapi.services.joke.search(ctx.query);
+    } else {
+      entities = await strapi.services.joke.find(ctx.query,);
+    }
+
+    return entities.map(entity => sanitizeEntity(entity, { model: strapi.models.joke }));
+  },
     
     /**
 	 * Create a comment.
