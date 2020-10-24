@@ -60,8 +60,41 @@
       "configurable": false
     },
     "jokes": {
-      "via": "author",
-      "collection": "joke"
+      "collection": "joke",
+      "via": "author"
+    },
+    "birthday": {
+      "type": "date"
+    },
+    "firstname": {
+      "type": "string"
+    },
+    "lastname": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "enumeration",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "default": "male",
+      "required": true
+    },
+    "bio": {
+      "type": "string"
+    },
+    "display_picture": {
+      "model": "file",
+      "via": "related",
+      "allowedTypes": [
+        "images"
+      ],
+      "plugin": "upload",
+      "required": false
+    },
+    "ip_address": {
+      "type": "string"
     }
   }
 }

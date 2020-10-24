@@ -46,9 +46,9 @@
       "via": "jokes"
     },
     "author": {
+      "via": "jokes",
       "plugin": "users-permissions",
-      "model": "user",
-      "via": "jokes"
+      "model": "user"
     },
     "comments": {
       "collection": "comment",

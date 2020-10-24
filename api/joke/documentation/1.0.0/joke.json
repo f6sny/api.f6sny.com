@@ -660,7 +660,8 @@
             "required": [
               "id",
               "username",
-              "email"
+              "email",
+              "gender"
             ],
             "properties": {
               "id": {
@@ -698,6 +699,27 @@
                 "items": {
                   "type": "string"
                 }
+              },
+              "birthday": {
+                "type": "string"
+              },
+              "firstname": {
+                "type": "string"
+              },
+              "lastname": {
+                "type": "string"
+              },
+              "gender": {
+                "type": "string"
+              },
+              "bio": {
+                "type": "string"
+              },
+              "display_picture": {
+                "type": "string"
+              },
+              "ip_address": {
+                "type": "string"
               },
               "created_by": {
                 "type": "string"

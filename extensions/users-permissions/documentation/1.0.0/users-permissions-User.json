@@ -1188,7 +1188,8 @@
         "required": [
           "id",
           "username",
-          "email"
+          "email",
+          "gender"
         ],
         "properties": {
           "id": {
@@ -1304,13 +1305,105 @@
                 }
               }
             }
+          },
+          "birthday": {
+            "type": "string",
+            "format": "date"
+          },
+          "firstname": {
+            "type": "string"
+          },
+          "lastname": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "default": "male",
+            "enum": [
+              "male",
+              "female"
+            ]
+          },
+          "bio": {
+            "type": "string"
+          },
+          "display_picture": {
+            "required": [
+              "id",
+              "name",
+              "hash",
+              "mime",
+              "size",
+              "url",
+              "provider"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "alternativeText": {
+                "type": "string"
+              },
+              "caption": {
+                "type": "string"
+              },
+              "width": {
+                "type": "integer"
+              },
+              "height": {
+                "type": "integer"
+              },
+              "formats": {
+                "type": "object"
+              },
+              "hash": {
+                "type": "string"
+              },
+              "ext": {
+                "type": "string"
+              },
+              "mime": {
+                "type": "string"
+              },
+              "size": {
+                "type": "number"
+              },
+              "url": {
+                "type": "string"
+              },
+              "previewUrl": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "provider_metadata": {
+                "type": "object"
+              },
+              "related": {
+                "type": "string"
+              },
+              "created_by": {
+                "type": "string"
+              },
+              "updated_by": {
+                "type": "string"
+              }
+            }
+          },
+          "ip_address": {
+            "type": "string"
           }
         }
       },
       "NewUsersPermissionsUser": {
         "required": [
           "username",
-          "email"
+          "email",
+          "gender"
         ],
         "properties": {
           "username": {
@@ -1351,6 +1444,30 @@
             "items": {
               "type": "string"
             }
+          },
+          "birthday": {
+            "type": "string",
+            "format": "date"
+          },
+          "firstname": {
+            "type": "string"
+          },
+          "lastname": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string",
+            "default": "male",
+            "enum": [
+              "male",
+              "female"
+            ]
+          },
+          "bio": {
+            "type": "string"
+          },
+          "ip_address": {
+            "type": "string"
           },
           "created_by": {
             "type": "string"
