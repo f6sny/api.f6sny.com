@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "joke_moderations",
+  "info": {
+    "name": "Joke Moderations",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "users_permissions_user": {
+      "plugin": "users-permissions",
+      "model": "user",
+      "via": "joke_moderations"
+    },
+    "ip_address": {
+      "type": "string",
+      "required": true,
+      "private": false
+    }
+  }
+}

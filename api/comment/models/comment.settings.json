@@ -19,9 +19,11 @@
       "plugin": "users-permissions",
       "model": "user"
     },
-    "joke": {
-      "via": "comments",
-      "model": "joke"
+    "status": {
+      "type": "boolean",
+      "default": true,
+      "private": false,
+      "required": true
     }
   }
 }

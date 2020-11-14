@@ -41,18 +41,22 @@
       "required": true,
       "default": 0
     },
-    "tags": {
-      "collection": "tag",
+    "author": {
+      "plugin": "users-permissions",
+      "model": "user",
       "via": "jokes"
     },
-    "author": {
-      "via": "jokes",
-      "plugin": "users-permissions",
-      "model": "user"
+    "joke_moderations": {
+      "collection": "joke-moderations"
     },
     "comments": {
-      "collection": "comment",
-      "via": "joke"
+      "private": true,
+      "collection": "comment"
+    },
+    "tags": {
+      "collection": "tag",
+      "via": "jokes",
+      "dominant": true
     }
   }
 }

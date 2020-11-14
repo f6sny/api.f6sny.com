@@ -532,7 +532,8 @@
           "comments": {
             "required": [
               "id",
-              "content"
+              "content",
+              "status"
             ],
             "properties": {
               "id": {
@@ -544,8 +545,8 @@
               "author": {
                 "type": "string"
               },
-              "joke": {
-                "type": "string"
+              "status": {
+                "type": "boolean"
               },
               "created_by": {
                 "type": "string"

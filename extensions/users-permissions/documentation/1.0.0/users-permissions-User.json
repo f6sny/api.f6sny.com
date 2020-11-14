@@ -1189,7 +1189,8 @@
           "id",
           "username",
           "email",
-          "gender"
+          "gender",
+          "adult_content"
         ],
         "properties": {
           "id": {
@@ -1282,16 +1283,16 @@
                 "moderated_down": {
                   "type": "integer"
                 },
-                "tags": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
                 "author": {
                   "type": "string"
                 },
+                "joke_moderations": {
+                  "type": "string"
+                },
                 "comments": {
+                  "type": "string"
+                },
+                "tags": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -1396,6 +1397,32 @@
           },
           "ip_address": {
             "type": "string"
+          },
+          "joke_moderations": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "ip_address"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "users_permissions_user": {
+                  "type": "string"
+                },
+                "ip_address": {
+                  "type": "string"
+                },
+                "created_by": {
+                  "type": "string"
+                },
+                "updated_by": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -1403,7 +1430,8 @@
         "required": [
           "username",
           "email",
-          "gender"
+          "gender",
+          "adult_content"
         ],
         "properties": {
           "username": {
@@ -1468,6 +1496,16 @@
           },
           "ip_address": {
             "type": "string"
+          },
+          "adult_content": {
+            "type": "boolean",
+            "default": false
+          },
+          "joke_moderations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_by": {
             "type": "string"

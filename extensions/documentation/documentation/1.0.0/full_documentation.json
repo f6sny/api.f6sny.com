@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "10/26/2020 7:39:35 PM"
+    "x-generation-date": "11/15/2020 2:22:42 AM"
   },
   "x-strapi-config": {
     "path": "/documentation",
@@ -541,6 +541,530 @@
         "summary": "",
         "tags": [
           "Comment"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "deprecated": false,
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/joke-moderations": {
+      "get": {
+        "deprecated": false,
+        "description": "Find all the joke-moderations's records",
+        "responses": {
+          "200": {
+            "description": "Retrieve joke-moderations document(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke-moderations"
+        ],
+        "parameters": [
+          {
+            "name": "_limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results possible",
+            "schema": {
+              "type": "integer"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_sort",
+            "in": "query",
+            "required": false,
+            "description": "Sort according to a specific field.",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_start",
+            "in": "query",
+            "required": false,
+            "description": "Skip a specific number of entries (especially useful for pagination)",
+            "schema": {
+              "type": "integer"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "=",
+            "in": "query",
+            "required": false,
+            "description": "Get entries that matches exactly your input",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_ne",
+            "in": "query",
+            "required": false,
+            "description": "Get records that are not equals to something",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_lt",
+            "in": "query",
+            "required": false,
+            "description": "Get record that are lower than a value",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_lte",
+            "in": "query",
+            "required": false,
+            "description": "Get records that are lower than or equal to a value",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_gt",
+            "in": "query",
+            "required": false,
+            "description": "Get records that are greater than a value",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_gte",
+            "in": "query",
+            "required": false,
+            "description": "Get records that are greater than  or equal a value",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_contains",
+            "in": "query",
+            "required": false,
+            "description": "Get records that contains a value",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_containss",
+            "in": "query",
+            "required": false,
+            "description": "Get records that contains (case sensitive) a value",
+            "schema": {
+              "type": "string"
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_in",
+            "in": "query",
+            "required": false,
+            "description": "Get records that matches any value in the array of values",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deprecated": false
+          },
+          {
+            "name": "_nin",
+            "in": "query",
+            "required": false,
+            "description": "Get records that doesn't match any value in the array of values",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deprecated": false
+          }
+        ]
+      },
+      "post": {
+        "deprecated": false,
+        "description": "Create a new joke-moderations record",
+        "responses": {
+          "200": {
+            "description": "Retrieve joke-moderations document(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke-moderations"
+        ],
+        "requestBody": {
+          "description": "",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewJoke-moderations"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/joke-moderations/count": {
+      "get": {
+        "deprecated": false,
+        "description": "Retrieve the numver of joke-moderations documents",
+        "responses": {
+          "200": {
+            "description": "Retrieve joke-moderations document(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke-moderations"
+        ],
+        "parameters": []
+      }
+    },
+    "/joke-moderations/{id}": {
+      "get": {
+        "deprecated": false,
+        "description": "Find one joke-moderations record",
+        "responses": {
+          "200": {
+            "description": "Retrieve joke-moderations document(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke-moderations"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "deprecated": false,
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "put": {
+        "deprecated": false,
+        "description": "Update a single joke-moderations record",
+        "responses": {
+          "200": {
+            "description": "Retrieve joke-moderations document(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke-moderations"
+        ],
+        "requestBody": {
+          "description": "",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewJoke-moderations"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "",
+            "deprecated": false,
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "deprecated": false,
+        "description": "Delete a single joke-moderations record",
+        "responses": {
+          "200": {
+            "description": "deletes a single joke-moderations based on the ID supplied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke-moderations"
         ],
         "parameters": [
           {
@@ -4264,7 +4788,8 @@
       "Comment": {
         "required": [
           "id",
-          "content"
+          "content",
+          "status"
         ],
         "properties": {
           "id": {
@@ -4278,7 +4803,8 @@
               "id",
               "username",
               "email",
-              "gender"
+              "gender",
+              "adult_content"
             ],
             "properties": {
               "id": {
@@ -4338,6 +4864,15 @@
               "ip_address": {
                 "type": "string"
               },
+              "adult_content": {
+                "type": "boolean"
+              },
+              "joke_moderations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
               "created_by": {
                 "type": "string"
               },
@@ -4346,62 +4881,16 @@
               }
             }
           },
-          "joke": {
-            "required": [
-              "id",
-              "content",
-              "ip_address",
-              "status",
-              "moderated_up",
-              "moderated_down"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "content": {
-                "type": "string"
-              },
-              "ip_address": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              },
-              "moderated_up": {
-                "type": "integer"
-              },
-              "moderated_down": {
-                "type": "integer"
-              },
-              "tags": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "author": {
-                "type": "string"
-              },
-              "comments": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "created_by": {
-                "type": "string"
-              },
-              "updated_by": {
-                "type": "string"
-              }
-            }
+          "status": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
       "NewComment": {
         "required": [
-          "content"
+          "content",
+          "status"
         ],
         "properties": {
           "content": {
@@ -4410,7 +4899,124 @@
           "author": {
             "type": "string"
           },
-          "joke": {
+          "status": {
+            "type": "boolean",
+            "default": true
+          },
+          "created_by": {
+            "type": "string"
+          },
+          "updated_by": {
+            "type": "string"
+          }
+        }
+      },
+      "Joke-moderations": {
+        "required": [
+          "id",
+          "ip_address"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "users_permissions_user": {
+            "required": [
+              "id",
+              "username",
+              "email",
+              "gender",
+              "adult_content"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "password": {
+                "type": "string"
+              },
+              "resetPasswordToken": {
+                "type": "string"
+              },
+              "confirmationToken": {
+                "type": "string"
+              },
+              "confirmed": {
+                "type": "boolean"
+              },
+              "blocked": {
+                "type": "boolean"
+              },
+              "role": {
+                "type": "string"
+              },
+              "jokes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "birthday": {
+                "type": "string"
+              },
+              "firstname": {
+                "type": "string"
+              },
+              "lastname": {
+                "type": "string"
+              },
+              "gender": {
+                "type": "string"
+              },
+              "bio": {
+                "type": "string"
+              },
+              "display_picture": {
+                "type": "string"
+              },
+              "ip_address": {
+                "type": "string"
+              },
+              "adult_content": {
+                "type": "boolean"
+              },
+              "joke_moderations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "created_by": {
+                "type": "string"
+              },
+              "updated_by": {
+                "type": "string"
+              }
+            }
+          },
+          "ip_address": {
+            "type": "string"
+          }
+        }
+      },
+      "NewJoke-moderations": {
+        "required": [
+          "ip_address"
+        ],
+        "properties": {
+          "users_permissions_user": {
+            "type": "string"
+          },
+          "ip_address": {
             "type": "string"
           },
           "created_by": {
@@ -4459,45 +5065,13 @@
             "type": "integer",
             "default": 0
           },
-          "tags": {
-            "type": "array",
-            "items": {
-              "required": [
-                "id",
-                "name",
-                "visible"
-              ],
-              "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "name": {
-                  "type": "string"
-                },
-                "visible": {
-                  "type": "boolean"
-                },
-                "jokes": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "created_by": {
-                  "type": "string"
-                },
-                "updated_by": {
-                  "type": "string"
-                }
-              }
-            }
-          },
           "author": {
             "required": [
               "id",
               "username",
               "email",
-              "gender"
+              "gender",
+              "adult_content"
             ],
             "properties": {
               "id": {
@@ -4557,6 +5131,15 @@
               "ip_address": {
                 "type": "string"
               },
+              "adult_content": {
+                "type": "boolean"
+              },
+              "joke_moderations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
               "created_by": {
                 "type": "string"
               },
@@ -4565,25 +5148,58 @@
               }
             }
           },
-          "comments": {
+          "joke_moderations": {
+            "required": [
+              "id",
+              "ip_address"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "users_permissions_user": {
+                "type": "string"
+              },
+              "ip_address": {
+                "type": "string"
+              },
+              "created_by": {
+                "type": "string"
+              },
+              "updated_by": {
+                "type": "string"
+              }
+            }
+          },
+          "tags": {
             "type": "array",
             "items": {
               "required": [
                 "id",
-                "content"
+                "name",
+                "visible"
               ],
               "properties": {
                 "id": {
                   "type": "string"
                 },
-                "content": {
+                "name": {
                   "type": "string"
                 },
-                "author": {
+                "visible": {
+                  "type": "boolean"
+                },
+                "description": {
                   "type": "string"
                 },
-                "joke": {
+                "fore_color": {
                   "type": "string"
+                },
+                "jokes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "created_by": {
                   "type": "string"
@@ -4630,16 +5246,16 @@
             "type": "integer",
             "default": 0
           },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
           "author": {
             "type": "string"
           },
+          "joke_moderations": {
+            "type": "string"
+          },
           "comments": {
+            "type": "string"
+          },
+          "tags": {
             "type": "array",
             "items": {
               "type": "string"
@@ -4671,7 +5287,8 @@
           "comments": {
             "required": [
               "id",
-              "content"
+              "content",
+              "status"
             ],
             "properties": {
               "id": {
@@ -4683,8 +5300,8 @@
               "author": {
                 "type": "string"
               },
-              "joke": {
-                "type": "string"
+              "status": {
+                "type": "boolean"
               },
               "created_by": {
                 "type": "string"
@@ -4731,6 +5348,12 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
+          "fore_color": {
+            "type": "string"
+          },
           "jokes": {
             "type": "array",
             "items": {
@@ -4761,16 +5384,16 @@
                 "moderated_down": {
                   "type": "integer"
                 },
-                "tags": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
                 "author": {
                   "type": "string"
                 },
+                "joke_moderations": {
+                  "type": "string"
+                },
                 "comments": {
+                  "type": "string"
+                },
+                "tags": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -4799,6 +5422,12 @@
           "visible": {
             "type": "boolean",
             "default": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "fore_color": {
+            "type": "string"
           },
           "jokes": {
             "type": "array",
@@ -4881,7 +5510,8 @@
                 "id",
                 "username",
                 "email",
-                "gender"
+                "gender",
+                "adult_content"
               ],
               "properties": {
                 "id": {
@@ -4941,6 +5571,15 @@
                 "ip_address": {
                   "type": "string"
                 },
+                "adult_content": {
+                  "type": "boolean"
+                },
+                "joke_moderations": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
                 "created_by": {
                   "type": "string"
                 },
@@ -4992,7 +5631,8 @@
           "id",
           "username",
           "email",
-          "gender"
+          "gender",
+          "adult_content"
         ],
         "properties": {
           "id": {
@@ -5085,16 +5725,16 @@
                 "moderated_down": {
                   "type": "integer"
                 },
-                "tags": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
                 "author": {
                   "type": "string"
                 },
+                "joke_moderations": {
+                  "type": "string"
+                },
                 "comments": {
+                  "type": "string"
+                },
+                "tags": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -5199,6 +5839,32 @@
           },
           "ip_address": {
             "type": "string"
+          },
+          "joke_moderations": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "ip_address"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "users_permissions_user": {
+                  "type": "string"
+                },
+                "ip_address": {
+                  "type": "string"
+                },
+                "created_by": {
+                  "type": "string"
+                },
+                "updated_by": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -5206,7 +5872,8 @@
         "required": [
           "username",
           "email",
-          "gender"
+          "gender",
+          "adult_content"
         ],
         "properties": {
           "username": {
@@ -5271,6 +5938,16 @@
           },
           "ip_address": {
             "type": "string"
+          },
+          "adult_content": {
+            "type": "boolean",
+            "default": false
+          },
+          "joke_moderations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_by": {
             "type": "string"

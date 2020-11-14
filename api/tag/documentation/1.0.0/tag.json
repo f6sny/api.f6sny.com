@@ -527,6 +527,12 @@
           "name": {
             "type": "string"
           },
+          "description": {
+            "type": "string"
+          },
+          "fore_color": {
+            "type": "string"
+          },
           "jokes": {
             "type": "array",
             "items": {
@@ -557,16 +563,16 @@
                 "moderated_down": {
                   "type": "integer"
                 },
-                "tags": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
                 "author": {
                   "type": "string"
                 },
+                "joke_moderations": {
+                  "type": "string"
+                },
                 "comments": {
+                  "type": "string"
+                },
+                "tags": {
                   "type": "array",
                   "items": {
                     "type": "string"
@@ -595,6 +601,12 @@
           "visible": {
             "type": "boolean",
             "default": true
+          },
+          "description": {
+            "type": "string"
+          },
+          "fore_color": {
+            "type": "string"
           },
           "jokes": {
             "type": "array",

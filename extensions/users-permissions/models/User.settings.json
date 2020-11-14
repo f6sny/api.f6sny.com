@@ -60,8 +60,8 @@
       "configurable": false
     },
     "jokes": {
-      "collection": "joke",
-      "via": "author"
+      "via": "author",
+      "collection": "joke"
     },
     "birthday": {
       "type": "date"
@@ -95,6 +95,16 @@
     },
     "ip_address": {
       "type": "string"
+    },
+    "adult_content": {
+      "type": "boolean",
+      "default": false,
+      "private": true,
+      "required": true
+    },
+    "joke_moderations": {
+      "via": "users_permissions_user",
+      "collection": "joke-moderations"
     }
   }
 }

@@ -22,10 +22,15 @@
       "required": true,
       "private": true
     },
+    "description": {
+      "type": "string"
+    },
+    "fore_color": {
+      "type": "string"
+    },
     "jokes": {
       "via": "tags",
-      "collection": "joke",
-      "dominant": true
+      "collection": "joke"
     }
   }
 }
