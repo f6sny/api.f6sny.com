@@ -2,6 +2,14 @@
   "routes": [
     {
       "method": "GET",
+      "path": "/counters",
+      "handler": "counters.get",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
       "path": "/jokes",
       "handler": "joke.find",
       "config": {

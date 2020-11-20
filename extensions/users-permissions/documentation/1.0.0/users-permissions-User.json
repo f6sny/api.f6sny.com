@@ -1293,10 +1293,7 @@
                   "type": "string"
                 },
                 "tags": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
+                  "type": "string"
                 },
                 "created_by": {
                   "type": "string"

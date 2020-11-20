@@ -43,7 +43,7 @@ module.exports = {
         ...ctx.query,
         _limit: 20,
         _sort:'id:DESC',
-        'tags.visible': 1,
+        //'tags.visible': 1,
         status_nin: ['pending','community_rejected','admin_rejected']
       };
   
