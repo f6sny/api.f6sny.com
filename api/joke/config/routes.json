@@ -18,6 +18,14 @@
     },
     {
       "method": "GET",
+      "path": "/jokes/pending",
+      "handler": "joke.findPending",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
       "path": "/jokes/count",
       "handler": "joke.count",
       "config": {

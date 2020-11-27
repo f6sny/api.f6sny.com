@@ -54,7 +54,9 @@
       "collection": "comment"
     },
     "tags": {
-      "collection": "tag"
+      "via": "jokes",
+      "collection": "tag",
+      "dominant": true
     }
   }
 }

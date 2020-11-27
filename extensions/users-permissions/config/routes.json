@@ -1,0 +1,13 @@
+{
+    "routes": [
+      {
+        "method": "GET",
+        "path": "/username/:username",
+        "handler": "user.findByUsername",
+        "config": {
+          "policies": []
+        }
+      }
+    ]
+  }
+  

@@ -19,6 +19,7 @@ module.exports = {
         pending_jokes: await strapi.services.joke.count({...ctx.query, status_in:['pending']}),
         deleted_jokes: await strapi.services.joke.count({...ctx.query, status_in:['community_rejected', 'admin_rejected']}),
         comments: await strapi.services.comment.count({...ctx.query}),
+        users: await strapi.query('user', 'users-permissions').count({...ctx.query}),
         //members: await strapi. strapi.services.users.count({...ctx.query}),
         visits: 0,
     }

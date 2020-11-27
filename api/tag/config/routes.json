@@ -10,6 +10,14 @@
     },
     {
       "method": "GET",
+      "path": "/tags/jokes/:slug",
+      "handler": "tag.findJokesBySlug",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
       "path": "/tags/count",
       "handler": "tag.count",
       "config": {
@@ -20,6 +28,15 @@
       "method": "GET",
       "path": "/tags/:id",
       "handler": "tag.findOne",
+      "config": {
+        "policies": []
+      }
+    },
+
+    {
+      "method": "GET",
+      "path": "/tags/slug/:slug",
+      "handler": "tag.findOneBySlug",
       "config": {
         "policies": []
       }

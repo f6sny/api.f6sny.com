@@ -20,13 +20,17 @@
       "type": "boolean",
       "default": true,
       "required": true,
-      "private": true
+      "private": false
     },
     "description": {
       "type": "string"
     },
     "fore_color": {
       "type": "string"
+    },
+    "jokes": {
+      "collection": "joke",
+      "via": "tags"
     }
   }
 }

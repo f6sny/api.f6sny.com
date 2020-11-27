@@ -254,6 +254,63 @@
         }
       }
     },
+    "/jokes/pending": {
+      "get": {
+        "deprecated": false,
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke"
+        ],
+        "parameters": []
+      }
+    },
     "/jokes/count": {
       "get": {
         "deprecated": false,
@@ -730,32 +787,41 @@
             }
           },
           "tags": {
-            "required": [
-              "id",
-              "name",
-              "visible"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "visible": {
-                "type": "boolean"
-              },
-              "description": {
-                "type": "string"
-              },
-              "fore_color": {
-                "type": "string"
-              },
-              "created_by": {
-                "type": "string"
-              },
-              "updated_by": {
-                "type": "string"
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "name",
+                "visible"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "fore_color": {
+                  "type": "string"
+                },
+                "jokes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "created_by": {
+                  "type": "string"
+                },
+                "updated_by": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -805,7 +871,10 @@
             "type": "string"
           },
           "tags": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_by": {
             "type": "string"

@@ -19,8 +19,12 @@ module.exports = {
 	async create(ctx) {
         let entity;
         // Defaults to the API user
-        ctx.request.body.author = ctx.state.user.id;
+        if(ctx.state.user !== undefined){
+          ctx.request.body.author = ctx.state.user.id;
+        }
+        
         // Cannot set status on create
+        ctx.request.body.ip_address = ctx.req.socket._peername.address;
         ctx.request.body.status = 'pending';
         
         entity = await strapi.services.joke.create(ctx.request.body);
@@ -43,12 +47,41 @@ module.exports = {
         ...ctx.query,
         _limit: 20,
         _sort:'id:DESC',
-        //'tags.visible': 1,
         status_nin: ['pending','community_rejected','admin_rejected']
       };
   
     if (ctx.query._q) {
         
+      entities = await strapi.services.joke.search(ctx.query);
+    } else {
+      entities = await strapi.services.joke.find(ctx.query,);
+    }
+
+    entities = entities.filter(elem => {
+      let visibile = true;
+      elem.tags.forEach(tag => {
+        if(!tag.visible) visibile = false;
+      });
+      
+      if(!visibile) return undefined;
+      else return elem;
+    })
+
+    return entities.map(entity => sanitizeEntity(entity, { model: strapi.models.joke }));
+  },
+
+  async findPending(ctx) {
+    let entities;
+
+    ctx.query = {
+        ...ctx.query,
+        _limit: 1,
+        _sort:'id:DESC',
+        //'tags.visible': 1,
+        status_in: ['pending']
+      };
+  
+    if (ctx.query._q) {
       entities = await strapi.services.joke.search(ctx.query);
     } else {
       entities = await strapi.services.joke.find(ctx.query,);

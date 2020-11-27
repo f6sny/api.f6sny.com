@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "11/18/2020 7:34:11 PM"
+    "x-generation-date": "11/27/2020 10:15:20 PM"
   },
   "x-strapi-config": {
     "path": "/documentation",
@@ -1334,6 +1334,63 @@
         }
       }
     },
+    "/jokes/pending": {
+      "get": {
+        "deprecated": false,
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Joke"
+        ],
+        "parameters": []
+      }
+    },
     "/jokes/count": {
       "get": {
         "deprecated": false,
@@ -2484,6 +2541,74 @@
         }
       }
     },
+    "/tags/jokes/{slug}": {
+      "get": {
+        "deprecated": false,
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Tag"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "description": "",
+            "deprecated": false,
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/tags/count": {
       "get": {
         "deprecated": false,
@@ -2730,6 +2855,74 @@
         "parameters": [
           {
             "name": "id",
+            "in": "path",
+            "description": "",
+            "deprecated": false,
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/tags/slug/{slug}": {
+      "get": {
+        "deprecated": false,
+        "description": "",
+        "responses": {
+          "200": {
+            "description": "response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "foo": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "unexpected error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "summary": "",
+        "tags": [
+          "Tag"
+        ],
+        "parameters": [
+          {
+            "name": "slug",
             "in": "path",
             "description": "",
             "deprecated": false,
@@ -5229,32 +5422,41 @@
             }
           },
           "tags": {
-            "required": [
-              "id",
-              "name",
-              "visible"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              },
-              "visible": {
-                "type": "boolean"
-              },
-              "description": {
-                "type": "string"
-              },
-              "fore_color": {
-                "type": "string"
-              },
-              "created_by": {
-                "type": "string"
-              },
-              "updated_by": {
-                "type": "string"
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "name",
+                "visible"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "visible": {
+                  "type": "boolean"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "fore_color": {
+                  "type": "string"
+                },
+                "jokes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "created_by": {
+                  "type": "string"
+                },
+                "updated_by": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -5304,7 +5506,10 @@
             "type": "string"
           },
           "tags": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_by": {
             "type": "string"
@@ -5393,11 +5598,69 @@
           "name": {
             "type": "string"
           },
+          "visible": {
+            "type": "boolean",
+            "default": true
+          },
           "description": {
             "type": "string"
           },
           "fore_color": {
             "type": "string"
+          },
+          "jokes": {
+            "type": "array",
+            "items": {
+              "required": [
+                "id",
+                "content",
+                "ip_address",
+                "status",
+                "moderated_up",
+                "moderated_down"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "ip_address": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "moderated_up": {
+                  "type": "integer"
+                },
+                "moderated_down": {
+                  "type": "integer"
+                },
+                "author": {
+                  "type": "string"
+                },
+                "joke_moderations": {
+                  "type": "string"
+                },
+                "comments": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "created_by": {
+                  "type": "string"
+                },
+                "updated_by": {
+                  "type": "string"
+                }
+              }
+            }
           }
         }
       },
@@ -5419,6 +5682,12 @@
           },
           "fore_color": {
             "type": "string"
+          },
+          "jokes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "created_by": {
             "type": "string"
@@ -5720,7 +5989,10 @@
                   "type": "string"
                 },
                 "tags": {
-                  "type": "string"
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
                 },
                 "created_by": {
                   "type": "string"
