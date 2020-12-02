@@ -11,11 +11,7 @@ const {
 } = require('strapi-utils');
 
 module.exports = {
-	/**
-	 * Create a record.
-	 *
-	 * @return {Object}
-	 */
+
 	async create(ctx) {
         let entity;
         // Defaults to the API user
@@ -34,12 +30,7 @@ module.exports = {
 		});
     },
 
-    /**
-   * Retrieve records.
-   *
-   * @return {Array}
-   */
-
+  
   async find(ctx) {
     let entities;
 
@@ -49,9 +40,8 @@ module.exports = {
         _sort:'id:DESC',
         status_nin: ['pending','community_rejected','admin_rejected']
       };
-  
-    if (ctx.query._q) {
-        
+      console.log(ctx.query._q);
+    if (ctx.query._q) {    
       entities = await strapi.services.joke.search(ctx.query);
     } else {
       entities = await strapi.services.joke.find(ctx.query,);
@@ -69,6 +59,7 @@ module.exports = {
 
     return entities.map(entity => sanitizeEntity(entity, { model: strapi.models.joke }));
   },
+  
 
   async findPending(ctx) {
     let entities;
@@ -91,11 +82,6 @@ module.exports = {
   },
   
     
-    /**
-	 * Create a comment.
-	 *
-	 * @return {Object}
-	 */
 	async comment(ctx) {
 		let entity;
 		if (ctx.is('multipart')) {
@@ -117,11 +103,7 @@ module.exports = {
 		});
 	},
 
-	/**
-	 * Update a record.
-	 *
-	 * @return {Object}
-	 */
+
 
 	async update(ctx) {
 		const {
@@ -155,11 +137,6 @@ module.exports = {
     },
     
 
-    /**
-   * delete a record.
-   *
-   * @return {Object}
-   */
 
   async delete(ctx) {
     const { id } = ctx.params;
