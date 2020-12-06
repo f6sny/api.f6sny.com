@@ -2,7 +2,7 @@
   "kind": "collectionType",
   "collectionName": "tags",
   "info": {
-    "name": "Tags",
+    "name": "Tag",
     "description": ""
   },
   "options": {
@@ -11,29 +11,26 @@
     "draftAndPublish": false
   },
   "attributes": {
-    "title": {
+    "name": {
       "type": "string",
       "required": true,
       "unique": true
     },
+    "visible": {
+      "type": "boolean",
+      "default": true,
+      "required": true,
+      "private": false
+    },
     "description": {
       "type": "string"
     },
-    "adult_content": {
-      "type": "boolean",
-      "default": false,
-      "required": true
-    },
-    "hex_color": {
+    "fore_color": {
       "type": "string"
     },
-    "slug": {
-      "type": "string",
-      "required": true
-    },
     "jokes": {
-      "via": "tags",
-      "collection": "jokes"
+      "collection": "joke",
+      "via": "tags"
     }
   }
 }

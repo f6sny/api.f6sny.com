@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "votes",
+  "info": {
+    "name": "Votes",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "ip_address": {
+      "type": "string"
+    },
+    "value": {
+      "type": "enumeration",
+      "enum": [
+        "up",
+        "down",
+        "neutral"
+      ],
+      "required": true,
+      "default": "neutral"
+    }
+  }
+}

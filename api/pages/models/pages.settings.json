@@ -1,8 +1,8 @@
 {
   "kind": "collectionType",
-  "collectionName": "tags",
+  "collectionName": "pages",
   "info": {
-    "name": "Tags",
+    "name": "Pages",
     "description": ""
   },
   "options": {
@@ -11,29 +11,25 @@
     "draftAndPublish": false
   },
   "attributes": {
+    "comments": {
+        "plugin": "comments",
+        "collection": "comment",
+        "via": "related"
+    },
     "title": {
       "type": "string",
       "required": true,
       "unique": true
     },
-    "description": {
-      "type": "string"
-    },
-    "adult_content": {
-      "type": "boolean",
-      "default": false,
-      "required": true
-    },
-    "hex_color": {
-      "type": "string"
+    "content": {
+      "type": "richtext"
     },
     "slug": {
       "type": "string",
       "required": true
     },
-    "jokes": {
-      "via": "tags",
-      "collection": "jokes"
+    "votes": {
+      "collection": "votes"
     }
   }
 }

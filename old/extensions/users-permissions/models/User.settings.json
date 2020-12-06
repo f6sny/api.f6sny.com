@@ -59,16 +59,17 @@
       "plugin": "users-permissions",
       "configurable": false
     },
-    "first_name": {
+    "jokes": {
+      "via": "author",
+      "collection": "joke"
+    },
+    "birthday": {
+      "type": "date"
+    },
+    "firstname": {
       "type": "string"
     },
-    "last_name": {
-      "type": "string"
-    },
-    "date_of_birth": {
-      "type": "datetime"
-    },
-    "biography": {
+    "lastname": {
       "type": "string"
     },
     "gender": {
@@ -77,21 +78,33 @@
         "male",
         "female"
       ],
-      "required": true,
-      "default": "male"
-    },
-    "adult_content": {
-      "type": "enumeration",
-      "enum": [
-        "show",
-        "hide"
-      ],
-      "default": "hide",
+      "default": "male",
       "required": true
     },
+    "bio": {
+      "type": "string"
+    },
+    "display_picture": {
+      "model": "file",
+      "via": "related",
+      "allowedTypes": [
+        "images"
+      ],
+      "plugin": "upload",
+      "required": false
+    },
     "ip_address": {
-      "type": "string",
-      "private": true
+      "type": "string"
+    },
+    "adult_content": {
+      "type": "boolean",
+      "default": false,
+      "private": true,
+      "required": true
+    },
+    "joke_moderations": {
+      "via": "users_permissions_user",
+      "collection": "joke-moderations"
     }
   }
 }

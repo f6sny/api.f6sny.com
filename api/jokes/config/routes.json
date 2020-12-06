@@ -2,48 +2,48 @@
   "routes": [
     {
       "method": "GET",
-      "path": "/tags",
-      "handler": "tag.find",
+      "path": "/jokes",
+      "handler": "jokes.find",
       "config": {
         "policies": []
       }
     },
     {
       "method": "GET",
-      "path": "/tags/count",
-      "handler": "tag.count",
+      "path": "/jokes/count",
+      "handler": "jokes.count",
       "config": {
         "policies": []
       }
     },
     {
       "method": "GET",
-      "path": "/tags/:id",
-      "handler": "tag.findOne",
+      "path": "/jokes/:id",
+      "handler": "jokes.findOne",
       "config": {
         "policies": []
       }
     },
     {
       "method": "POST",
-      "path": "/tags",
-      "handler": "tag.create",
+      "path": "/jokes",
+      "handler": "jokes.create",
       "config": {
         "policies": []
       }
     },
     {
       "method": "PUT",
-      "path": "/tags/:id",
-      "handler": "tag.update",
+      "path": "/jokes/:id",
+      "handler": "jokes.update",
       "config": {
         "policies": []
       }
     },
     {
       "method": "DELETE",
-      "path": "/tags/:id",
-      "handler": "tag.delete",
+      "path": "/jokes/:id",
+      "handler": "jokes.delete",
       "config": {
         "policies": []
       }
