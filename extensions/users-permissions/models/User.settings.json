@@ -92,6 +92,19 @@
     "ip_address": {
       "type": "string",
       "private": true
+    },
+    "jokes": {
+      "collection": "jokes",
+      "via": "author"
+    },
+    "display_picture": {
+      "model": "file",
+      "via": "related",
+      "allowedTypes": [
+        "images"
+      ],
+      "plugin": "upload",
+      "required": false
     }
   }
 }

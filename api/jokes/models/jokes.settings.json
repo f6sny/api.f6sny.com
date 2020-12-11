@@ -12,9 +12,9 @@
   },
   "attributes": {
     "comments": {
-        "plugin": "comments",
-        "collection": "comment",
-        "via": "related"
+      "plugin": "comments",
+      "collection": "comment",
+      "via": "related"
     },
     "content": {
       "type": "text",
@@ -48,6 +48,11 @@
     },
     "votes": {
       "collection": "votes"
+    },
+    "author": {
+      "via": "jokes",
+      "plugin": "users-permissions",
+      "model": "user"
     }
   }
 }
