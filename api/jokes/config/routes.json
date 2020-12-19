@@ -9,6 +9,14 @@
       }
     },
     {
+        "method": "GET",
+        "path": "/jokes/pending",
+        "handler": "jokes.findPending",
+        "config": {
+          "policies": []
+        }
+      },
+    {
       "method": "GET",
       "path": "/jokes/count",
       "handler": "jokes.count",
@@ -32,6 +40,14 @@
         "policies": []
       }
     },
+    {
+        "method": "POST",
+        "path": "/jokes/:id/vote",
+        "handler": "jokes.vote",
+        "config": {
+          "policies": []
+        }
+      },
     {
       "method": "PUT",
       "path": "/jokes/:id",

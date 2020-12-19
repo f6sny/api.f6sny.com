@@ -12,7 +12,8 @@
   },
   "attributes": {
     "ip_address": {
-      "type": "string"
+      "type": "string",
+      "private": false
     },
     "value": {
       "type": "enumeration",
@@ -23,6 +24,11 @@
       ],
       "required": true,
       "default": "neutral"
+    },
+    "author": {
+      "plugin": "users-permissions",
+      "model": "user",
+      "via": "votes"
     }
   }
 }

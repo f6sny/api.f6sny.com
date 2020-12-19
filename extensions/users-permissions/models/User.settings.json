@@ -105,6 +105,10 @@
       ],
       "plugin": "upload",
       "required": false
+    },
+    "votes": {
+      "via": "author",
+      "collection": "votes"
     }
   }
 }

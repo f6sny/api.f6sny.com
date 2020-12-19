@@ -6,14 +6,14 @@ from datetime import datetime
 source_db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="",
+    password="test",
     database="f6sny_original"
 )
 
 dest_db = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="",
+    password="test",
     database="f6sny_strapi"
 )
 
@@ -141,6 +141,8 @@ def get_users():
         else:
             adult_content = "hide"
 
+        date_of_birth = None
+
         sql = "insert into `users-permissions_user` (id, username, email, provider, password, confirmed, blocked, role, created_by, created_at, updated_at, date_of_birth, first_name, last_name, gender, biography, ip_address, adult_content) values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)"
         val = (id, username, email, 'local', password, 1, 0, 1, 1, created_on, created_on,
                date_of_birth, first_name, last_name, gender, bio, ip_address, adult_content)
@@ -166,7 +168,7 @@ def get_comments():
         sql2 = "insert into comments_morph (comments_id, related_id, related_type, `field`, `order`) values (%s, %s, %s, %s, %s)"
 
         if int(user_id) < 1:
-            user_id = "NULL"
+            user_id = None
 
         related_slug = "jokes:" + str(resource_id)
         val = (id, content, user_id, author, author_email, related_slug, date_added, date_added)
@@ -183,9 +185,9 @@ def get_comments():
     print("comment record inserted.")
 
 
-# get_jokes()
-# get_tags()
-# get_jokes_tags()
-# get_joke_votes()
-# get_users()
+get_jokes()
+get_tags()
+get_jokes_tags()
+get_joke_votes()
+get_users()
 get_comments()
