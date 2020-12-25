@@ -94,8 +94,8 @@
       "private": true
     },
     "jokes": {
-      "collection": "jokes",
-      "via": "author"
+      "via": "author",
+      "collection": "jokes"
     },
     "display_picture": {
       "model": "file",

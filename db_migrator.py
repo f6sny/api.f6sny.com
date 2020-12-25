@@ -33,15 +33,14 @@ def get_jokes():
     dest_db_c.execute("ALTER TABLE jokes AUTO_INCREMENT = 1")
 
     for (id, title, content, date_added, user_id, status_id, date_modified, slug) in myresult:
-        sql = "insert into jokes (id, content, status, slug, created_by, updated_by, created_at, updated_at) values (%s, %s, %s, %s, %s, %s, %s, %s)"
+        sql = "insert into jokes (id, content, status, slug, created_at, updated_at, author) values (%s, %s, %s, %s, %s, %s, %s)"
         status = "pending"
         if status_id == 1:
             status = "approved"
         elif status_id == 3:
             status = "deleted"
 
-        val = (id, content, status, slug, user_id,
-               user_id, date_added, date_added,)
+        val = (id, content, status, slug, date_added, date_added, user_id)
         dest_db_c.execute(sql, val)
         dest_db.commit()
     print("jokes inserted.")

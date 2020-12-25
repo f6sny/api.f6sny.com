@@ -33,7 +33,7 @@
       "required": true
     },
     "remarks": {
-      "type": "string",
+      "type": "text",
       "private": true
     },
     "slug": {

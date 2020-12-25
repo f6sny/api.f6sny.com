@@ -7,7 +7,7 @@
 
 
 const { parseMultipartData, sanitizeEntity } = require('strapi-utils');
-const joke = require('../../../old/api/joke/controllers/joke');
+//const joke = require('../../../old/api/joke/controllers/joke');
 
 // function to clean adult content based on user preference
 const clean_adult_content = (jokes_array,adult_selection) => {
@@ -26,6 +26,9 @@ const clean_adult_content = (jokes_array,adult_selection) => {
           })
     }
     return jokes_array;
+};
+const clean_arabic = (string) => {
+    
 };
 module.exports = {
     async find(ctx) {
@@ -65,21 +68,29 @@ module.exports = {
         let entities;
         const ip_address = ctx.req.socket._peername.address;
 
-        // GET WHAT USER ALREADY VOTED ON
-        // bare-metals knex query on the db, get user previous votes, either by IP or user ID
-        let connection_string = `select jokes__votes.joke_id from votes left join jokes__votes on jokes__votes.vote_id = votes.id`;
-        
         let authorized_id = (ctx.state.user);
-        if (!authorized_id) { connection_string += ` where ip_address = "${ip_address}"` }
-        else { connection_string += ` where author = "${authorized_id.id}"` }
-        connection_string += ` group by joke_id`;
+        
+        let already_voted_ids_only;
+        if(authorized_id && authorized_id.role.name == "Administrator"){
+            //Do nothing and show all jokes for force moderation
+        }
+        else{
+            // GET WHAT USER ALREADY VOTED ON
+            // bare-metals knex query on the db, get user previous votes, either by IP or user ID
+            let connection_string = `select jokes__votes.joke_id from votes left join jokes__votes on jokes__votes.vote_id = votes.id`;
 
-        const rawBuilder = strapi.connections.default.raw(connection_string);
-        const resp = await rawBuilder.then();
-        const already_voted = resp[0];
-        const already_voted_ids_only = already_voted.map(elem => {
+            if(authorized_id) { connection_string += ` where author = "${authorized_id.id}" OR ip_address = "${ip_address}"` }
+            else { connection_string += ` where ip_address = "${ip_address}"` }
+            connection_string += ` group by joke_id`;
+
+            console.log("From Service "+connection_string)
+            const rawBuilder = strapi.connections.default.raw(connection_string);
+            const resp = await rawBuilder.then();
+            const already_voted = resp[0];
+            already_voted_ids_only = already_voted.map(elem => {
             return elem.joke_id;
         })
+        }
 
         // MAKE the query while id not in the array
         ctx.query = {
@@ -114,23 +125,27 @@ module.exports = {
       return strapi.services.jokes.count(ctx.query);
     },
 
-  
     async create(ctx) {
-      let entity;
-      let user = {};
-      if (!ctx.state.user) { user.id = 88; }
-      else { user = ctx.state.user; }
-      if (ctx.is('multipart')) {
-        const { data, files } = parseMultipartData(ctx);
-        data.author = user.id;
-        entity = await strapi.services.jokes.create(data, { files });
-      } 
-      else {
-        ctx.request.body.author = user.id;
-        entity = await strapi.services.jokes.create(ctx.request.body);
-      }
+        let entity;
+        
+        // set the user either authenticated or logged in
+        if (!ctx.state.user) { ctx.request.body.author = 88; }
+        else { ctx.request.body.author = ctx.state.user.id; }
 
-      return sanitizeEntity(entity, { model: strapi.models.jokes });
+        // Need to check for Errors
+        // If Joke does not start with ygool lik
+        if(!ctx.request.body.content.startsWith('يقول لك')) ctx.throw(400, 'النكتة ما تبدا ب "يقول لك"');
+        // If Joke less than 19 characters
+        if(ctx.request.body.content.length<= 19) ctx.throw(400, 'النكتة أقصر من 20 حرف, يقول لك بلحالها 9 حروف');
+        // If joke does not have category
+        if(!ctx.request.body.tags || ctx.request.body.tagslength < 1) ctx.throw(400, 'اختر عالأقل تصنيف واحد يالغالي');
+        
+        //ctx.request.body.content = clean_arabic(ctx.request.body.content);
+        // TODO still need to clean arabic from tanween
+        console.log('i am here')
+        entity = await strapi.services.jokes.create(ctx.request.body);
+        
+        return sanitizeEntity(entity, { model: strapi.models.jokes });
     },
 
     async vote(ctx) {
@@ -138,7 +153,8 @@ module.exports = {
         const ip_address = ctx.req.socket._peername.address;
         let votes_up = 0;
         let votes_down = 0;
-        const vote_value = ctx.request.body.value;
+        //console.log(ctx.request.body)
+        const vote_value = ctx.request.body.data.value;
         // Threshold is now fixed in db to 10
         const threshold = 10;
 
@@ -153,13 +169,18 @@ module.exports = {
         // Check if voted before, and count votes, get the current joke
         let current_joke = await strapi.services.jokes.findOne({id: joke_id});
         // Loop through votes to see IP or user ID
+        
         for(const vote of current_joke.votes){ 
-            if(vote.ip_address == ip_address) ctx.throw(400, 'Already voted, same ip');
-            if(vote.author && vote.author == authorized_id.id) ctx.throw(400, 'Already voted, same author');
-
+            if(!authorized_id && authorized_id.role.name != "Administrator"){
+                if(vote.ip_address == ip_address) ctx.throw(400, 'Already voted, same ip');
+                if(vote.author && vote.author == authorized_id.id) ctx.throw(400, 'Already voted, same author');
+            }
+    
             if(vote.value == "up") votes_up++;
             if(vote.value == "down") votes_down++;
         }
+        
+        
         
         // Make the vote
         let vote = await strapi.services.votes.create(ctx.request.body);
@@ -186,7 +207,8 @@ module.exports = {
             if(authorized_id && authorized_id.role.name == "Administrator"){
                 if(vote_value =="up") status = "active";
                 if(vote_value =="down") status = "deleted";
-
+                console.log(vote_value);
+                console.log(`it was an admin and status ${status} was forced`)
                 current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
             }
             // Prepare for a remarks entry update
