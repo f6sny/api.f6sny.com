@@ -7,29 +7,7 @@
 
 
 const { parseMultipartData, sanitizeEntity } = require('strapi-utils');
-//const joke = require('../../../old/api/joke/controllers/joke');
 
-// function to clean adult content based on user preference
-const clean_adult_content = (jokes_array,adult_selection) => {
-    if(!adult_selection){
-        jokes_array = jokes_array.filter(elem => {
-            let visibile = true;
-    
-            for(const tag of elem.tags){
-                if(tag.adult_content) {
-                    visibile = false;
-                    break;
-                }
-            }        
-            if(!visibile) return undefined;
-            else return elem;
-          })
-    }
-    return jokes_array;
-};
-const clean_arabic = (string) => {
-    
-};
 module.exports = {
     async find(ctx) {
       let entities;
@@ -37,7 +15,7 @@ module.exports = {
         ...ctx.query,
         _limit: 20,
         _sort:'id:DESC',
-        status: 'approved',
+        status: 'active',
       };
       
       if (ctx.query._q) {
@@ -59,7 +37,6 @@ module.exports = {
         if(!visibile) return undefined;
         else return elem;
       })
-      console.log(entities);
   
       return entities.map(entity => sanitizeEntity(entity, { model: strapi.models.jokes }));
     },
@@ -83,7 +60,6 @@ module.exports = {
             else { connection_string += ` where ip_address = "${ip_address}"` }
             connection_string += ` group by joke_id`;
 
-            console.log("From Service "+connection_string)
             const rawBuilder = strapi.connections.default.raw(connection_string);
             const resp = await rawBuilder.then();
             const already_voted = resp[0];
@@ -94,7 +70,7 @@ module.exports = {
 
         // MAKE the query while id not in the array
         ctx.query = {
-            id_nin: already_voted_ids_only,
+            id_nin: ctx.query.id_nin.concat(already_voted_ids_only),
             _sort:'id:DESC',
             status: 'pending',
         };
@@ -105,7 +81,7 @@ module.exports = {
             entities = await strapi.services.jokes.find(ctx.query);
           }
         
-        entities = clean_adult_content(entities,0);
+        entities = strapi.services.globalcalls.clean_adult_content(entities,0);
 
         // return the top one only
         return sanitizeEntity(entities[0], { model: strapi.models.jokes });
@@ -128,9 +104,12 @@ module.exports = {
     async create(ctx) {
         let entity;
         
+
+
         // set the user either authenticated or logged in
-        if (!ctx.state.user) { ctx.request.body.author = 88; }
-        else { ctx.request.body.author = ctx.state.user.id; }
+        let authorized_id = (ctx.state.user);
+        if (!authorized_id) { ctx.request.body.author = 88; }
+        else { ctx.request.body.author = authorized_id.id; }
 
         // Need to check for Errors
         // If Joke does not start with ygool lik
@@ -140,9 +119,19 @@ module.exports = {
         // If joke does not have category
         if(!ctx.request.body.tags || ctx.request.body.tagslength < 1) ctx.throw(400, 'اختر عالأقل تصنيف واحد يالغالي');
         
+        // Cannot set status on create
+        ctx.request.body.ip_address = ctx.req.socket._peername.address;
+        
+
+        // Cannot play with status
+        ctx.request.body.status = 'pending';
+
+        // force active for admins
+        if(authorized_id && authorized_id.role.name == "Administrator"){
+            ctx.request.body.status = 'active';
+        }
         //ctx.request.body.content = clean_arabic(ctx.request.body.content);
-        // TODO still need to clean arabic from tanween
-        console.log('i am here')
+        // TODO: still need to clean arabic from tanween
         entity = await strapi.services.jokes.create(ctx.request.body);
         
         return sanitizeEntity(entity, { model: strapi.models.jokes });
@@ -153,8 +142,8 @@ module.exports = {
         const ip_address = ctx.req.socket._peername.address;
         let votes_up = 0;
         let votes_down = 0;
-        //console.log(ctx.request.body)
         const vote_value = ctx.request.body.data.value;
+        
         // Threshold is now fixed in db to 10
         const threshold = 10;
 
@@ -180,8 +169,6 @@ module.exports = {
             if(vote.value == "down") votes_down++;
         }
         
-        
-        
         // Make the vote
         let vote = await strapi.services.votes.create(ctx.request.body);
         
@@ -191,9 +178,9 @@ module.exports = {
             return elem.id;
         });
 
-        
         // Check if status needs to be changed based on this vote
         let status = current_joke.status;
+
         // Change status only if it was pending, if jokes vote count exceeds threshold, make public or delete
         if(current_joke.status == 'pending'){
             if(votes_up >= threshold){
@@ -203,14 +190,13 @@ module.exports = {
                 status = "deleted";
             }
             
-            // Force change status of joke to approved or deleted for admin users
+            // Force change status of joke to active or deleted for admin users
             if(authorized_id && authorized_id.role.name == "Administrator"){
                 if(vote_value =="up") status = "active";
                 if(vote_value =="down") status = "deleted";
-                console.log(vote_value);
-                console.log(`it was an admin and status ${status} was forced`)
                 current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
             }
+
             // Prepare for a remarks entry update
             current_joke.remarks += " ## " + `the vote is ${vote.value}, total ups: ${votes_up}, total downs:  ${votes_down}, threshold is: ${threshold}, status should be:  ${status} at: ${Date.now()}`;
         }
@@ -232,16 +218,26 @@ module.exports = {
 
     async update(ctx) {
       const { id } = ctx.params;
-  
+    
+    // only edit own jokes
+    const [joke] = await strapi.services.joke.find({
+        id: ctx.params.id,
+        'author.id': ctx.state.user.id,
+    });
+
+    if (!joke) {
+        return ctx.unauthorized(`You can't update this entry`);
+    }
+        
+      // Cannot set status or author on update
+      ctx.request.body.ip_address = ctx.req.socket._peername.address;
+      // Cannot set status on update
+      delete ctx.request.body.status;
+      delete ctx.request.body.author;
+
       let entity;
-      if (ctx.is('multipart')) {
-        const { data, files } = parseMultipartData(ctx);
-        entity = await strapi.services.jokes.update({ id }, data, {
-          files,
-        });
-      } else {
+
         entity = await strapi.services.jokes.update({ id }, ctx.request.body);
-      }
   
       return sanitizeEntity(entity, { model: strapi.models.jokes });
     },
@@ -249,6 +245,15 @@ module.exports = {
     async delete(ctx) {
       const { id } = ctx.params;
   
+      const [joke] = await strapi.services.joke.find({
+        id: ctx.params.id,
+        'author.id': ctx.state.user.id,
+        });
+
+        if (!joke) {
+            return ctx.unauthorized(`You can't delete this entry`);
+        }
+        
       const entity = await strapi.services.jokes.delete({ id });
       return sanitizeEntity(entity, { model: strapi.models.jokes });
     },

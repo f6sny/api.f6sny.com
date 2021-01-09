@@ -4,23 +4,7 @@
  * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
  * to customize this service
  */
-const clean_adult_content = (jokes_array,adult_selection) => {
-    if(!adult_selection){
-        jokes_array = jokes_array.filter(elem => {
-            let visibile = true;
-    
-            for(const tag of elem.tags){
-                if(tag.adult_content) {
-                    visibile = false;
-                    break;
-                }
-            }        
-            if(!visibile) return undefined;
-            else return elem;
-          })
-    }
-    return jokes_array;
-};
+
 module.exports = {
     async countPending(ctx) {
         let entities;
@@ -63,7 +47,7 @@ module.exports = {
             entities = await strapi.services.jokes.find(ctx.query);
           }
         
-        entities = clean_adult_content(entities,0);
+        entities = strapi.services.globalcalls.clean_adult_content(entities,0);
 
         return entities.length;
       },

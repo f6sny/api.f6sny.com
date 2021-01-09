@@ -66,7 +66,7 @@
       "type": "string"
     },
     "date_of_birth": {
-      "type": "datetime"
+      "type": "date"
     },
     "biography": {
       "type": "string"
@@ -94,8 +94,9 @@
       "private": true
     },
     "jokes": {
-      "via": "author",
-      "collection": "jokes"
+      "private": true,
+      "collection": "jokes",
+      "via": "author"
     },
     "display_picture": {
       "model": "file",
@@ -107,8 +108,8 @@
       "required": false
     },
     "votes": {
-      "via": "author",
-      "collection": "votes"
+      "collection": "votes",
+      "via": "author"
     }
   }
 }

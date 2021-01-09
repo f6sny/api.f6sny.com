@@ -20,10 +20,8 @@ const clean_adult_content = (jokes_array,adult_selection) => {
 async function filter(arr, callback) {
 	const fail = Symbol()
 	return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i=>i!==fail)
-  }
+}
   
-
-
 module.exports = {
   async getCounters(ctx) {
 	const counters = {
@@ -37,7 +35,6 @@ module.exports = {
 	}
 	return counters;
   },
-
 
   async getLatestComments(ctx) {
 	let entities;
@@ -75,5 +72,8 @@ module.exports = {
 
 	},
   
+    async updateProfile(ctx){
+        return;
+    }
   
 };

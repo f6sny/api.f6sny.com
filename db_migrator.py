@@ -36,7 +36,7 @@ def get_jokes():
         sql = "insert into jokes (id, content, status, slug, created_at, updated_at, author) values (%s, %s, %s, %s, %s, %s, %s)"
         status = "pending"
         if status_id == 1:
-            status = "approved"
+            status = "active"
         elif status_id == 3:
             status = "deleted"
 
