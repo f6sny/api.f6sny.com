@@ -1,4 +1,4 @@
-# docker run  --name f6sny-strapi -p 8010:80 --rm -it strapi-f6sny ash
+# docker run -d --name f6sny-strapi -p 8010:80 --rm -it strapi-f6sny
 FROM node:12-alpine
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
