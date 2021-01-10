@@ -1,8 +1,9 @@
-# docker run  --name f6sny-strapi -e NODE_ENV=production  -p 8010:80 --rm -it strapi-f6sny ash
+# docker run  --name f6sny-strapi -p 8010:80 --rm -it strapi-f6sny ash
 FROM node:12-alpine
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY package.json /usr/src/app/
+ENV NODE_ENV="production"
 RUN npm install
 COPY . /usr/src/app
 RUN npm run build
