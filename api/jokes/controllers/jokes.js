@@ -48,8 +48,10 @@ module.exports = {
         let authorized_id = (ctx.state.user);
         
         let already_voted_ids_only;
-        if(authorized_id && authorized_id.role.name == "Administrator"){
+        if(authorized_id) {
+            if(authorized_id.role.name == "Administrator"){
             //Do nothing and show all jokes for force moderation
+            }
         }
         else{
             // GET WHAT USER ALREADY VOTED ON
@@ -127,8 +129,10 @@ module.exports = {
         ctx.request.body.status = 'pending';
 
         // force active for admins
-        if(authorized_id && authorized_id.role.name == "Administrator"){
+        if(authorized_id) {
+            if(authorized_id.role.name == "Administrator"){
             ctx.request.body.status = 'active';
+            }
         }
         //ctx.request.body.content = clean_arabic(ctx.request.body.content);
         // TODO: still need to clean arabic from tanween
@@ -160,7 +164,7 @@ module.exports = {
         // Loop through votes to see IP or user ID
         
         for(const vote of current_joke.votes){ 
-            if(!authorized_id && authorized_id.role.name != "Administrator"){
+            if(!authorized_id || authorized_id.role.name != "Administrator"){
                 if(vote.ip_address == ip_address) ctx.throw(400, 'Already voted, same ip');
                 if(vote.author && vote.author == authorized_id.id) ctx.throw(400, 'Already voted, same author');
             }
@@ -191,10 +195,12 @@ module.exports = {
             }
             
             // Force change status of joke to active or deleted for admin users
-            if(authorized_id && authorized_id.role.name == "Administrator"){
-                if(vote_value =="up") status = "active";
-                if(vote_value =="down") status = "deleted";
-                current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
+            if(authorized_id) {
+                if(authorized_id.role.name == "Administrator"){
+                    if(vote_value =="up") status = "active";
+                    if(vote_value =="down") status = "deleted";
+                    current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
+                } 
             }
 
             // Prepare for a remarks entry update
