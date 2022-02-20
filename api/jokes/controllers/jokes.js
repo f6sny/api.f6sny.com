@@ -47,10 +47,11 @@ module.exports = {
 
         let authorized_id = (ctx.state.user);
         
-        let already_voted_ids_only;
+        let already_voted_ids_only = [];
+
         if(authorized_id) {
             if(authorized_id.role.name == "Administrator"){
-            //Do nothing and show all jokes for force moderation
+                //Do nothing and show all jokes for force moderation
             }
         }
         else{
@@ -65,9 +66,12 @@ module.exports = {
             const rawBuilder = strapi.connections.default.raw(connection_string);
             const resp = await rawBuilder.then();
             const already_voted = resp[0];
-            already_voted_ids_only = already_voted.map(elem => {
-            return elem.joke_id;
-        })
+            
+            if(already_voted){
+                already_voted_ids_only = already_voted.map(elem => {
+                    return elem.joke_id;
+                })
+            }
         }
 
         // MAKE the query while id not in the array
