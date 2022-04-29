@@ -17,7 +17,7 @@
     "strapi": "3.4.1",
     "strapi-admin": "3.4.1",
     "strapi-connector-bookshelf": "3.4.1",
-    "strapi-plugin-comments": "^1.0.0",
+    "strapi-plugin-comments": "^1.0.4",
     "strapi-plugin-content-manager": "3.4.1",
     "strapi-plugin-content-type-builder": "3.4.1",
     "strapi-plugin-email": "3.4.1",
