@@ -1,5 +1,5 @@
 # docker run -d --name f6sny-strapi -p 8010:80 --rm -it strapi-f6sny
-FROM node:12-alpine
+FROM node:16-alpine
 RUN mkdir -p /usr/src/app
 WORKDIR /usr/src/app
 COPY package.json /usr/src/app/
