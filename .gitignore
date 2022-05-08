@@ -31,7 +31,7 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
-config/env/production*
+config/env*
 
 ############################
 # Packages
