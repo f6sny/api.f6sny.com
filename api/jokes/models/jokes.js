@@ -35,7 +35,7 @@ module.exports = {
             slug = slug.replace("يقول لك","");
             slug = slug.replace(regex, "");
             slug = slug.trim();
-            slug = shorten(slug, 50).replace(/[" "]/g, "-");
+            slug = shorten(slug, 50).trip().replace(/[" "]/g, "-");
             data.slug = slug
         }
       },
@@ -47,7 +47,7 @@ module.exports = {
             slug = slug.replace("يقول لك","");
             slug = slug.replace(regex, "");
             slug = slug.trim();
-            slug = shorten(slug, 50).replace(/[" "]/g, "-");
+            slug = shorten(slug, 50).trip().replace(/[" "]/g, "-");
             data.slug = slug
         }
       },
