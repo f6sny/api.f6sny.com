@@ -33,7 +33,7 @@ module.exports = {
             slug = slug.replace(/ +(?= )/g,'');
             slug = slug.trim();
             slug = slug.replace("يقول لك","");
-            slug = slug.toString().replaceAll(regex, "");
+            slug = slug.replace(regex, "");
             slug = slug.trim();
             slug = shorten(slug, 50).replaceAll(" ", "-");
             data.slug = slug
@@ -45,7 +45,7 @@ module.exports = {
             slug = slug.replace(/ +(?= )/g,'');
             slug = slug.trim();
             slug = slug.replace("يقول لك","");
-            slug = slug.replaceAll(regex, "");
+            slug = slug.replace(regex, "");
             slug = slug.trim();
             slug = shorten(slug, 50).replaceAll(" ", "-");
             data.slug = slug
