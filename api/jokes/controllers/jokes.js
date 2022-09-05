@@ -199,13 +199,11 @@ module.exports = {
             }
             
             // Force change status of joke to active or deleted for admin users
-            if(authorized_id) {
-                if(authorized_id.role.name == "Administrator"){
-                    if(vote_value =="up") status = "active";
-                    if(vote_value =="down") status = "deleted";
-                    current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
-                } 
-            }
+              if(authorized_id?.role?.name == "Administrator"){
+                  if(vote_value =="up") status = "active";
+                  if(vote_value =="down") status = "deleted";
+                  current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
+              } 
 
             // Prepare for a remarks entry update
             current_joke.remarks += " ## " + `the vote is ${vote.value}, total ups: ${votes_up}, total downs:  ${votes_down}, threshold is: ${threshold}, status should be:  ${status} at: ${Date.now()}`;
