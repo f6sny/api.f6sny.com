@@ -76,7 +76,7 @@ module.exports = {
 
         // MAKE the query while id not in the array
         ctx.query = {
-            id_nin: ctx.query.id_nin.concat(already_voted_ids_only),
+            id_nin: ctx.query?.id_nin?.concat(already_voted_ids_only),
             _sort:'id:DESC',
             status: 'pending',
         };

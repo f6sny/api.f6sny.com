@@ -9,7 +9,6 @@ module.exports = {
     async countPending(ctx) {
         let entities;
         const ip_address = ctx.req.socket._peername.address;
-
         let authorized_id = (ctx.state.user);
         
         let already_voted_ids_only;
