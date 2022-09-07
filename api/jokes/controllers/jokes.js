@@ -1,16 +1,11 @@
 'use strict';
 
-/**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
- * to customize this controller
- */
-
-
 const { parseMultipartData, sanitizeEntity } = require('strapi-utils');
 
 module.exports = {
     async find(ctx) {
       let entities;
+
       ctx.query = {
         ...ctx.query,
         _limit: 20,
@@ -43,36 +38,12 @@ module.exports = {
 
     async findPending(ctx) {
         let entities;
+
         const ip_address = ctx.req.socket._peername.address;
 
-        let authorized_id = (ctx.state.user);
+        let request_user = (ctx.state.user);
         
-        let already_voted_ids_only = [];
-
-        if(authorized_id) {
-            if(authorized_id.role.name == "Administrator"){
-                //Do nothing and show all jokes for force moderation
-            }
-        }
-        else{
-            // GET WHAT USER ALREADY VOTED ON
-            // bare-metals knex query on the db, get user previous votes, either by IP or user ID
-            let connection_string = `select jokes__votes.joke_id from votes left join jokes__votes on jokes__votes.vote_id = votes.id`;
-
-            if(authorized_id) { connection_string += ` where author = "${authorized_id.id}" OR ip_address = "${ip_address}"` }
-            else { connection_string += ` where ip_address = "${ip_address}"` }
-            connection_string += ` group by joke_id`;
-
-            const rawBuilder = strapi.connections.default.raw(connection_string);
-            const resp = await rawBuilder.then();
-            const already_voted = resp[0];
-            
-            if(already_voted){
-                already_voted_ids_only = already_voted.map(elem => {
-                    return elem.joke_id;
-                })
-            }
-        }
+        let already_voted_ids_only = await this.getAlreadyVoted(request_user, ip_address);
 
         // MAKE the query while id not in the array
         ctx.query = {
@@ -83,7 +54,8 @@ module.exports = {
 
         if (ctx.query._q) {
             entities = await strapi.services.jokes.search(ctx.query);
-          } else {
+          } 
+          else {
             entities = await strapi.services.jokes.find(ctx.query);
           }
         
@@ -91,6 +63,33 @@ module.exports = {
 
         // return the top one only
         return sanitizeEntity(entities[0], { model: strapi.models.jokes });
+    },
+
+    async getAlreadyVoted(request_user, ip_address){
+      // Check if reqeuster is  not administrator , then get the list of all jokes voted on.
+      let result;
+      if(request_user?.role?.name != "Administrator"){
+        // GET WHAT USER ALREADY VOTED ON
+        let connection_string = this.getAlreadyVotedConnectionString(request_user, ip_address);
+
+        const rawBuilder = strapi.connections.default.raw(connection_string);
+        const resp = await rawBuilder.then();
+        const already_voted = resp[0];
+
+        return already_voted.map(elem => {
+            return elem.joke_id;
+        })
+      }
+    },
+
+    getAlreadyVotedConnectionString(request_user, ip_address){
+      // bare-metals knex query on the db, get user previous votes, either by IP or user ID
+      let connection_string = 'select jokes__votes.joke_id from votes left join jokes__votes on jokes__votes.vote_id = votes.id where ';
+
+      // Check the identifier
+      if(request_user) { connection_string += `author = "${request_user.id}" OR` }
+      connection_string += ` ip_address = "${ip_address} group by joke_id"`
+      return connection_string;
     },
 
     async findOne(ctx) {
@@ -113,9 +112,9 @@ module.exports = {
 
 
         // set the user either authenticated or logged in
-        let authorized_id = (ctx.state.user);
-        if (!authorized_id) { ctx.request.body.author = 88; }
-        else { ctx.request.body.author = authorized_id.id; }
+        let request_user = (ctx.state.user);
+        if (!request_user) { ctx.request.body.author = 88; }
+        else { ctx.request.body.author = request_user.id; }
 
         // Need to check for Errors
         // If Joke does not start with ygool lik
@@ -133,8 +132,8 @@ module.exports = {
         ctx.request.body.status = 'pending';
 
         // force active for admins
-        if(authorized_id) {
-            if(authorized_id.role.name == "Administrator"){
+        if(request_user) {
+            if(request_user.role.name == "Administrator"){
             ctx.request.body.status = 'active';
             }
         }
@@ -159,18 +158,18 @@ module.exports = {
         if(vote_value =="down") votes_down++;
 
         // Either IP address or user_id for recording of user
-        let authorized_id = (ctx.state.user);
-        if (!authorized_id) { ctx.request.body.ip_address = ip_address }
-        else { ctx.request.body.author = authorized_id; }
+        let request_user = (ctx.state.user);
+        if (!request_user) { ctx.request.body.ip_address = ip_address }
+        else { ctx.request.body.author = request_user; }
 
         // Check if voted before, and count votes, get the current joke
         let current_joke = await strapi.services.jokes.findOne({id: joke_id});
         // Loop through votes to see IP or user ID
         
         for(const vote of current_joke.votes){ 
-            if(!authorized_id || authorized_id.role.name != "Administrator"){
+            if(!request_user || request_user.role.name != "Administrator"){
                 if(vote.ip_address == ip_address) ctx.throw(400, 'Already voted, same ip');
-                if(vote.author && vote.author == authorized_id.id) ctx.throw(400, 'Already voted, same author');
+                if(vote.author && vote.author == request_user.id) ctx.throw(400, 'Already voted, same author');
             }
     
             if(vote.value == "up") votes_up++;
@@ -199,10 +198,10 @@ module.exports = {
             }
             
             // Force change status of joke to active or deleted for admin users
-              if(authorized_id?.role?.name == "Administrator"){
+              if(request_user?.role?.name == "Administrator"){
                   if(vote_value =="up") status = "active";
                   if(vote_value =="down") status = "deleted";
-                  current_joke.remarks += " ## " + `forced ${status} by administrator ${authorized_id.username}`;
+                  current_joke.remarks += " ## " + `forced ${status} by administrator ${request_user.username}`;
               } 
 
             // Prepare for a remarks entry update

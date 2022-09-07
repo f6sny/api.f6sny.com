@@ -1,9 +1,5 @@
 'use strict';
 
-/**
- * `globalcalls` service.
- */
-
 module.exports = {
     async isAdultJoke(joke_id){
         // get the joke object

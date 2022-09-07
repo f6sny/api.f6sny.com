@@ -1,8 +1,5 @@
 const { sanitizeEntity } = require("strapi-utils");
 
-
-
-
 module.exports = {
   /**
    * Retrieve user records.
