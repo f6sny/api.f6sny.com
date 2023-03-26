@@ -1,7 +1,7 @@
 {
   "name": "js-strapi-f-6-sny-backend",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "A Strapi application",
   "scripts": {
     "develop": "strapi develop",
@@ -9,18 +9,22 @@
     "build": "strapi build",
     "strapi": "strapi"
   },
-  "devDependencies": {},
   "dependencies": {
     "knex": "0.21.18",
     "mysql": "latest",
     "slugify": "1.4.6",
-    "@strapi/strapi": "4.1.2",
-    "@strapi/plugin-users-permissions": "4.1.2",
-    "@strapi/plugin-i18n": "4.1.2",
-    "@strapi/plugin-documentation": "4.1.2",
-    "strapi-plugin-comments": "2.2.9",
+    "strapi": "3.6.9",
+    "strapi-admin": "3.6.9",
+    "strapi-connector-bookshelf": "3.6.9",
+    "strapi-plugin-comments": "1.0.4",
+    "strapi-plugin-content-manager": "3.6.9",
+    "strapi-plugin-content-type-builder": "3.6.9",
+    "strapi-plugin-email": "3.6.9",
     "strapi-plugin-entity-relationship-chart": "3.1.0",
-    "strapi-plugin-meilisearch": "0.5.1"
+    "strapi-plugin-meilisearch": "0.5.1",
+    "strapi-plugin-upload": "3.6.9",
+    "strapi-plugin-users-permissions": "3.6.9",
+    "strapi-utils": "3.6.9"
   },
   "author": {
     "name": "Mohannad F. Otaibi"
