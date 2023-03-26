@@ -11,22 +11,16 @@
   },
   "devDependencies": {},
   "dependencies": {
-    "knex": "0.20.0",
+    "knex": "0.21.18",
     "mysql": "latest",
     "slugify": "1.4.6",
-    "strapi": "3.4.1",
-    "strapi-admin": "3.4.1",
-    "strapi-connector-bookshelf": "3.4.1",
-    "strapi-plugin-comments": "1.0.0-beta.6",
-    "strapi-plugin-content-manager": "3.4.1",
-    "strapi-plugin-content-type-builder": "3.4.1",
-    "strapi-plugin-email": "3.4.1",
+    "@strapi/strapi": "4.1.2",
+    "@strapi/plugin-users-permissions": "4.1.2",
+    "@strapi/plugin-i18n": "4.1.2",
+    "@strapi/plugin-documentation": "4.1.2",
+    "strapi-plugin-comments": "2.2.9",
     "strapi-plugin-entity-relationship-chart": "3.1.0",
-    "strapi-plugin-graphql": "3.4.1",
-    "strapi-plugin-upload": "3.4.1",
-    "strapi-plugin-users-permissions": "3.4.1",
-    "strapi-plugin-meilisearch": "0.5.1",
-    "strapi-utils": "3.4.1"
+    "strapi-plugin-meilisearch": "0.5.1"
   },
   "author": {
     "name": "Mohannad F. Otaibi"
