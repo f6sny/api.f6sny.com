@@ -14,3 +14,5 @@ services:
       - PORT
       - URL
       - ADMIN_JWT_SECRET
+    ports:
+      - "8010:80"
