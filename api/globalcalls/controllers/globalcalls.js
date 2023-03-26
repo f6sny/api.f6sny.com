@@ -5,12 +5,13 @@ const clean_adult_content = (jokes_array,adult_selection) => {
         jokes_array = jokes_array.filter(elem => {
             let visibile = true;
     
-            for(const tag of elem.tags){
-                if(tag.adult_content) {
+			elem.tags.forEach(element => {
+				if(element.adult_content) {
                     visibile = false;
-                    break;
+                    return;
                 }
-            }        
+			});
+                  
             if(!visibile) return undefined;
             else return elem;
           })
@@ -38,38 +39,38 @@ module.exports = {
 	},
 
 	async getLatestComments(ctx) {
-	let entities;
-	ctx.query = {
-		...ctx.query,
-		_limit: 30,
-		_sort: "id:DESC",		
-		// TODO: add one for status later, to filter out blocked or not active comments
-		};
+		let entities;
+		ctx.query = {
+			...ctx.query,
+			_limit: 30,
+			_sort: "id:DESC",		
+			// TODO: add one for status later, to filter out blocked or not active comments
+			};
 
-	if (ctx.query._q) {
-		entities = await strapi.query('comment', 'comments').search(ctx.query);
-	} else {
-		entities = await strapi.query('comment', 'comments').find(ctx.query,);
-	}
-
-	//remove deleted jokes and adult content
-	entities = await filter(entities, async elem => {
-		let keep = true;
-		if(elem.related[0].status == 'deleted'){
-			keep = false;
-		}
-		
-		let istrue = await strapi.services.globalcalls.isAdultJoke(elem.related[0].id);
-		if(istrue){
-			console.log("is adult")
-			keep = false;
+		if (ctx.query._q) {
+			entities = await strapi.query('comment', 'comments').search(ctx.query);
+		} else {
+			entities = await strapi.query('comment', 'comments').find(ctx.query,);
 		}
 
-		return keep;
-	})
+		//remove deleted jokes and adult content
+		entities = await filter(entities, async element => {
+			let keep = true;
+			if(element.related[0].status == 'deleted'){
+				keep = false;
+			}
+			
+			let is_adult_joke = await strapi.services.globalcalls.isAdultJoke(element.related[0].id);
+			if(is_adult_joke){
+				console.log("is adult")
+				keep = false;
+			}
 
-	//console.log(entities[0])
-	return entities.slice(0,10);
+			return keep;
+		})
+
+		//console.log(entities[0])
+		return entities.slice(0,10);
 
 	},
   

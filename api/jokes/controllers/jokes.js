@@ -22,12 +22,12 @@ module.exports = {
       entities = entities.filter(elem => {
         let visibile = true;
 
-        for(const tag of elem.tags){
-            if(tag.adult_content) {
-                visibile = false;
-                break;
-            }
+        elem.tags.forEach(element => {
+          if(element.adult_content) {
+            visibile = false;
+            return;
         }
+        });
         
         if(!visibile) return undefined;
         else return elem;
@@ -108,8 +108,6 @@ module.exports = {
 
     async create(ctx) {
         let entity;
-        
-
 
         // set the user either authenticated or logged in
         let request_user = (ctx.state.user);
@@ -127,7 +125,6 @@ module.exports = {
         // Cannot set status on create
         ctx.request.body.ip_address = ctx.req.socket._peername.address;
         
-
         // Cannot play with status
         ctx.request.body.status = 'pending';
 

@@ -3,32 +3,36 @@
 module.exports = {
     async isAdultJoke(joke_id){
         // get the joke object
-        let istrue = false;
+        let is_adult_joke = false;
         let joke = await strapi.services.jokes.findOne({id: joke_id});
-        for(const tag of joke.tags){
-            if(tag.adult_content == true)  {
-                istrue = true;
+
+        joke.tags.forEach(tag => {
+            if(tag.adult_content == true){
+                is_adult_joke = true;
             }
-        }
-        return istrue;
+        });
+
+        return is_adult_joke;
     },
 
     clean_arabic(string){
         return;
     },
+
     clean_adult_content(jokes_array,adult_selection) {
         if(!adult_selection){
-            jokes_array = jokes_array.filter(elem => {
+            jokes_array = jokes_array.filter(element => {
                 let visibile = true;
-        
-                for(const tag of elem.tags){
+
+                element.tags.forEach(tag => {
                     if(tag.adult_content) {
                         visibile = false;
-                        break;
+                        return;
                     }
-                }        
+                });
+           
                 if(!visibile) return undefined;
-                else return elem;
+                else return element;
               })
         }
         return jokes_array;
