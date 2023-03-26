@@ -53,4 +53,4 @@ const generate_slug = (text) =>{
   return slug
 };
 
-module.exports = generate_slug, clean_adult_content, filter_array;
+module.exports = { generate_slug, clean_adult_content, filter_array };
