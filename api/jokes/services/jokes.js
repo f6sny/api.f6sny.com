@@ -31,7 +31,7 @@ module.exports = {
     async countPending(ctx) {
       const ipAddress = ctx.req.socket._peername.address;
       const user = ctx.state.user;
-      const alreadyVotedIds = await getAlreadyVoted({ user, ipAddress });
+      const alreadyVotedIds = await this.getAlreadyVoted({ user, ipAddress });
     
       const query = {
         id_nin: alreadyVotedIds,
