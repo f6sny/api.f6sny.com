@@ -1,3 +1,29 @@
+// entire file can be moved to globalcalls
+
+const clean_adult_content = (jokes_array,adult_selection) => {
+    if(!adult_selection){
+        jokes_array = jokes_array.filter(elem => {
+            let visibile = true;
+    
+			elem.tags.forEach(element => {
+				if(element.adult_content) {
+                    visibile = false;
+                    return;
+                }
+			});
+                  
+            if(!visibile) return undefined;
+            else return elem;
+          })
+    }
+    return jokes_array;
+};
+
+async function filter_array(arr, callback) {
+	const fail = Symbol()
+	return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i=>i!==fail)
+}
+
 const slug = require('slugify');
 
 const strip_tags_and_new_lines = (text) => {
@@ -27,4 +53,4 @@ const generate_slug = (text) =>{
   return slug
 };
 
-module.exports = generate_slug;
+module.exports = generate_slug, clean_adult_content, filter_array;

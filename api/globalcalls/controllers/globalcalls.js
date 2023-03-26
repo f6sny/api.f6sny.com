@@ -1,28 +1,6 @@
 'use strict';
 
-const clean_adult_content = (jokes_array,adult_selection) => {
-    if(!adult_selection){
-        jokes_array = jokes_array.filter(elem => {
-            let visibile = true;
-    
-			elem.tags.forEach(element => {
-				if(element.adult_content) {
-                    visibile = false;
-                    return;
-                }
-			});
-                  
-            if(!visibile) return undefined;
-            else return elem;
-          })
-    }
-    return jokes_array;
-};
-
-async function filter(arr, callback) {
-	const fail = Symbol()
-	return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i=>i!==fail)
-}
+const { filter_array } = require('../../../utilities/mfo_tools')
   
 module.exports = {
 	async getCounters(ctx) {
@@ -53,8 +31,8 @@ module.exports = {
 			entities = await strapi.query('comment', 'comments').find(ctx.query,);
 		}
 
-		//remove deleted jokes and adult content
-		entities = await filter(entities, async element => {
+		// remove deleted jokes and adult content
+		entities = await filter_array(entities, async element => {
 			let keep = true;
 			if(element.related[0].status == 'deleted'){
 				keep = false;

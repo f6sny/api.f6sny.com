@@ -29,38 +29,22 @@ module.exports = {
     },
 
     async countPending(ctx) {
-
-        // will store the response in this variable.
-        let entities;
-
-        // IP Address of the user, will be used as identifier if no user_id was provided
-        const ip_address = ctx.req.socket._peername.address;
-
-        // Store the user object (if any)
-        let request_user = (ctx.state.user);
-        
-        // To store the ids of jokes he already voted on.
-        let already_voted_ids_only = await this.getAlreadyVoted(request_user, ip_address);
-
-        // Now lets get the pending jokes
-        // MAKE the query while id not in the array already_voted_ids_only
-        ctx.query = {
-            id_nin: already_voted_ids_only,
-            _sort:'id:DESC',
-            status: 'pending',
-        };
-
-        if (ctx.query._q) {
-            entities = await strapi.services.jokes.search(ctx.query);
-        } 
-        else {
-          entities = await strapi.services.jokes.find(ctx.query);
-        }
-        
-        // Clean the result from adult content
-        entities = strapi.services.globalcalls.clean_adult_content(entities,0);
-
-        return entities.length;
-    },
+      const ipAddress = ctx.req.socket._peername.address;
+      const user = ctx.state.user;
+      const alreadyVotedIds = await getAlreadyVoted({ user, ipAddress });
     
+      const query = {
+        id_nin: alreadyVotedIds,
+        _sort: 'id:DESC',
+        status: 'pending',
+      };
+    
+      const entities = ctx.query._q
+        ? await strapi.services.jokes.search(query)
+        : await strapi.services.jokes.find(query);
+    
+      const cleanedEntities = strapi.services.globalcalls.clean_adult_content(entities, 0);
+    
+      return cleanedEntities.length;
+    }
 };
