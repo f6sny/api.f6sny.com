@@ -8,12 +8,27 @@ const { sanitizeEntity } = require("strapi-utils");
 
 module.exports = {
 	async find(ctx) {
-		let entities;
 
 		ctx.query = {
 			...ctx.query,
-			adult_content: 0,
+			adult_content: false,
 		};
+
+		const result = await strapi.query('tag').find(ctx.query);
+		let maxJokes = 0;
+		result.forEach((tag) => {
+			if (tag.jokes.length > maxJokes) {
+			  maxJokes = tag.jokes.length;
+			}
+		
+			tag.jokes = tag.jokes.length;
+			tag.jokes_max = maxJokes;
+		  });
+
+		  return sanitizeEntity(result, { model: strapi.models.tag });
+
+		
+
 
 		if (ctx.query._q) {
 			entities = await strapi.services.tag.search(ctx.query);
@@ -25,7 +40,9 @@ module.exports = {
 
 		// replaces jokes result by count only under tag object
 		entities.forEach((element) => {
-			if (element.jokes.length > max) max = element.jokes.length;
+			if (element.jokes.length > max) {
+				max = element.jokes.length;
+			}
 			element.jokes = element.jokes.length;
 		});
 

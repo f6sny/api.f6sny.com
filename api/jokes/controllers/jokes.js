@@ -92,53 +92,41 @@ module.exports = {
       return connection_string;
     },
 
-    async findOne(ctx) {
-      const { id } = ctx.params;
-  
+    async findOne({ params: { id } }) {
       const entity = await strapi.services.jokes.findOne({ id });
       return sanitizeEntity(entity, { model: strapi.models.jokes });
     },
   
     count(ctx) {
-      if (ctx.query._q) {
-        return strapi.services.jokes.countSearch(ctx.query);
-      }
-      return strapi.services.jokes.count(ctx.query);
+      return ctx.query._q ? strapi.services.jokes.countSearch(ctx.query) : strapi.services.jokes.count(ctx.query);
     },
+    
 
     async create(ctx) {
-        let entity;
+        // Set the user either authenticated or logged in
+        const author = ctx.state.user?.id || 88;
+        ctx.request.body.author = author;
 
-        // set the user either authenticated or logged in
-        let request_user = (ctx.state.user);
-        if (!request_user) { ctx.request.body.author = 88; }
-        else { ctx.request.body.author = request_user.id; }
-
-        // Need to check for Errors
         // If Joke does not start with ygool lik
-        if(!ctx.request.body.content.startsWith('يقول لك')) ctx.throw(400, 'النكتة ما تبدا ب "يقول لك"');
+        const { content, tags } = ctx.request.body;
+        if(!content.startsWith('يقول لك')) ctx.throw(400, 'النكتة ما تبدا ب "يقول لك"');
         // If Joke less than 19 characters
-        if(ctx.request.body.content.length<= 19) ctx.throw(400, 'النكتة أقصر من 20 حرف, يقول لك بلحالها 9 حروف');
+        if(content.length<= 19) ctx.throw(400, 'النكتة أقصر من 20 حرف, يقول لك بلحالها 9 حروف');
         // If joke does not have category
-        if(!ctx.request.body.tags || ctx.request.body.tagslength < 1) ctx.throw(400, 'اختر عالأقل تصنيف واحد يالغالي');
+        if(!tags || tags.length < 1) ctx.throw(400, 'اختر عالأقل تصنيف واحد يالغالي');
         
-        // Cannot set status on create
+        // Set IP address and status
         ctx.request.body.ip_address = ctx.req.socket._peername.address;
+        const isAdmin = ctx.state.user?.role.name === 'Administrator';
+        ctx.request.body.status = isAdmin ? 'active' : 'pending';
         
-        // Cannot play with status
-        ctx.request.body.status = 'pending';
-
-        // force active for admins
-        if(request_user) {
-            if(request_user.role.name == "Administrator"){
-            ctx.request.body.status = 'active';
-            }
-        }
-        //ctx.request.body.content = clean_arabic(ctx.request.body.content);
+        // Clean joke content and create entity
+        //ctx.request.body.content = clean_arabic(content);
         // TODO: still need to clean arabic from tanween
-        entity = await strapi.services.jokes.create(ctx.request.body);
-        
+        const entity = await strapi.services.jokes.create(ctx.request.body);
+            
         return sanitizeEntity(entity, { model: strapi.models.jokes });
+
     },
 
     async vote(ctx) {
