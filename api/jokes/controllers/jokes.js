@@ -159,11 +159,14 @@ module.exports = {
             if(vote.value == "down") votes_down_count++;
             
             // if is admin, skip
+			//console.log('current_user',current_user)
             if (current_user?.role?.name == 'Administrator') {
-              continue;
+				if(vote.author && vote.author == current_user.id) ctx.throw(400, 'Already voted, same author');
+              	continue;
             }
 
             // if authenticated, check vote author, if not, check IP address
+			
             if(current_user){
               if(vote.author && vote.author == current_user.id) ctx.throw(400, 'Already voted, same author');
             }
