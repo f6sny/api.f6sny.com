@@ -14,5 +14,7 @@ services:
       - PORT
       - URL
       - ADMIN_JWT_SECRET
+      - PUBLIC_URL
+      - STRAPI_URL
     ports:
       - "8010:80"
