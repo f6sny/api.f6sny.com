@@ -9,8 +9,7 @@
     "displayName": "User"
   },
   "options": {
-    "draftAndPublish": false,
-    "timestamps": true
+    "draftAndPublish": false
   },
   "attributes": {
     "username": {
@@ -71,6 +70,34 @@
       "relation": "oneToMany",
       "target": "api::joke.joke",
       "mappedBy": "author"
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "date_of_birth": {
+      "type": "date"
+    },
+    "biography": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "string"
+    },
+    "safe_content_preference": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "moderate",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string"
     }
   }
 }
