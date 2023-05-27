@@ -30,16 +30,16 @@ async function migrateData() {
 
 		// GET DATA
 		data.tags = await connection_1.query("SELECT * FROM tags");
-		data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");
-		data.users_roles = [];
+		data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");	
 		data.pages = await connection_1.query("SELECT * FROM pages");
 		data.comments = await connection_1.query("SELECT * FROM comments");
-		data.comments_comment_author_user_links = [];
 		data.votes = await connection_1.query("SELECT * FROM votes");
-		data.votes_authors = [];
 		data.jokes = await connection_1.query("SELECT * FROM jokes");
 		data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
 		data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
+		data.comments_comment_author_user_links = [];
+		data.users_roles = [];
+		data.votes_authors = [];
 		data.jokes_authors = [];
 
 		// fix jokes parameters
@@ -143,10 +143,20 @@ async function migrateData() {
 					user_id: vote.author
 				})
 			}
+			else if(vote.created_by != 1){
+				data.votes_authors.push({
+					vote_id: vote.id,
+					user_id: vote.created_by
+				})
+			}
+
 			delete vote.author;
 
 			renameObjectProperty(vote,"created_by", "created_by_id");
 			renameObjectProperty(vote,"updated_by", "updated_by_id");
+
+			vote.created_by_id = 1;
+			vote.updated_by_id = 1;
 
 			return vote;
 		})
