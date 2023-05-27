@@ -48,9 +48,8 @@
     },
     "author": {
       "type": "relation",
-      "relation": "manyToOne",
-      "target": "plugin::users-permissions.user",
-      "inversedBy": "jokes"
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
     }
   }
 }

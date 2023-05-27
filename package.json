@@ -13,6 +13,7 @@
     "@strapi/plugin-i18n": "4.10.5",
     "@strapi/plugin-users-permissions": "4.10.5",
     "@strapi/strapi": "4.10.5",
+    "mysql": "^2.18.1",
     "mysql2": "^3.3.2",
     "strapi-plugin-comments": "^2.2.10",
     "strapi-plugin-passwordless": "^4.0.9"

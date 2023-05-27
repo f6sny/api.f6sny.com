@@ -4,7 +4,8 @@
   "info": {
     "singularName": "tag",
     "pluralName": "tags",
-    "displayName": "Tag"
+    "displayName": "Tag",
+    "description": ""
   },
   "options": {
     "draftAndPublish": false
@@ -34,6 +35,15 @@
       "relation": "manyToMany",
       "target": "api::joke.joke",
       "mappedBy": "tags"
+    },
+    "safe_content_preference": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "moderate"
     }
   }
 }
