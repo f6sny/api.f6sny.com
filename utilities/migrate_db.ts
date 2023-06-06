@@ -173,21 +173,20 @@ got:
 
 		// clear bfore insert
 		await resetTablesContent();
+		//await chunkAndRun(data.pages[0], 200, "pages");
+		//await chunkAndRun(data.users[0], 400, "up_users");
+		//await chunkAndRun(data.tags[0], 200, "tags");
+		//await chunkAndRun(data.jokes[0], 200, "jokes");
+		//await chunkAndRun(data.votes[0], 200, "votes");
 
-		await chunkAndRun(data.pages[0], 200, "INSERT INTO pages SET ?");
-		await chunkAndRun(data.users[0], 400, "INSERT INTO up_users SET ?");
-		await chunkAndRun(data.jokes[0], 200, "INSERT INTO jokes SET ?");
-		await chunkAndRun(data.tags[0], 200, "INSERT INTO tags SET ?");
-		await chunkAndRun(data.votes[0], 200, "INSERT INTO votes SET ?");
-
-		await chunkAndRun(data.jokes_authors,300,"INSERT INTO jokes_author_links SET ?"	);
-		await chunkAndRun(data.jokes_tags[0], 200, "INSERT INTO jokes_tags_links SET ?");
-		await chunkAndRun(data.jokes_votes[0], 200, "INSERT INTO jokes_votes_links SET ?");
-		await chunkAndRun(data.users_roles, 400, "INSERT INTO up_users_role_links SET ?");
-		await chunkAndRun(data.votes_authors, 200, "INSERT INTO votes_author_links SET ?");
+		//await chunkAndRun(data.jokes_authors,300,"jokes_author_links");
+		await chunkAndRun(data.jokes_tags[0], 200, "jokes_tags_links");
+		await chunkAndRun(data.jokes_votes[0], 200, "jokes_votes_links");
+		await chunkAndRun(data.users_roles, 400, "up_users_role_links");
+		await chunkAndRun(data.votes_authors, 200, "votes_author_links");
 		
-		await chunkAndRun(data.comments[0], 400, "INSERT INTO comments_comment SET ?");
-		await chunkAndRun(data.comments_comment_author_user_links, 200, "INSERT INTO comments_comment_author_user_links SET ?");
+		await chunkAndRun(data.comments[0], 400, "comments_comment");
+		await chunkAndRun(data.comments_comment_author_user_links, 200, "comments_comment_author_user_links");
 
 		console.log("finished first insert batch");
 		
@@ -197,12 +196,17 @@ got:
 	}
 }
 
-async function chunkAndRun(	array: Array<any>,	chunk_size: number,	sql_statement: string) {
+async function chunkAndRun(	array: Array<any>,	chunk_size: number,	table_name: string, reset_table_content: boolean = false) {
+
+	if(reset_table_content){
+		resetTablesContent(table_name);
+	}
 
 	connection_1 = await pool1.getConnection();
 	connection_2 = await pool2.getConnection();
-
+	const sql_statement = `INSERT INTO ${table_name} SET ?`;
 	console.log("executing " + sql_statement);
+	
 
 	let promise_group = array.map((data) => connection_2.query(sql_statement, data));
 
@@ -237,21 +241,20 @@ function renameObjectProperty(obj,oldProperty,newProperty){
 
 }
 
-async function resetTablesContent(){
+async function resetTablesContent(table_name = ''){
 	const database_tables = [
-		'jokes',
-		'comments_comment',
-		'up_users',
-		'votes',
-		'tags',
-		'pages',
-		'up_users_role_links',
-		'jokes_author_links',
+		//'pages',
+		//'up_users',
+		//'tags',
+	//	'jokes',
+	//	'votes',
+	//	'jokes_author_links',
 		'jokes_tags_links',
-		'comments_comment_author_user_links',
 		'jokes_votes_links',
 		'up_users_role_links',
 		'votes_author_links',
+		'comments_comment',
+		'comments_comment_author_user_links',
 	];
 
 	await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
