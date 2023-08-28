@@ -1,4 +1,5 @@
-var mysql = require("mysql2/promise");
+namespace JokesDatabaseCleaner {
+	var mysql = require("mysql2/promise");
 require('dotenv').config();
 
 require('util').inspect.defaultOptions.depth = 1;
@@ -267,3 +268,4 @@ async function resetTablesContent(table_name = ''){
 }
 
 migrateData();
+}

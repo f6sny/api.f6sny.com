@@ -1,7 +1,4 @@
-'use strict';
-
-// Migrated
-module.exports = {
+export default {
     async isAdultJoke(joke_id){
         // get the joke object
         let is_adult_joke = false;
@@ -38,4 +35,4 @@ module.exports = {
         }
         return jokes_array;
     }
-};
+}

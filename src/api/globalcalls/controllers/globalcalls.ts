@@ -1,15 +1,12 @@
-'use strict';
-
-// Migrated
 const { filter_array } = require('../../../utilities/mfo_tools')
-  
-module.exports = {
-	async getCounters(ctx) {
+
+export default {
+    async getCounters(ctx) {
 		const counters = {
 			total_jokes: 	await strapi.services.jokes.count({...ctx.query}),
 			deleted_jokes: 	await strapi.services.jokes.count({...ctx.query, status_in:['deleted']}),
-			comments: 		await strapi.query('comment', 'comments').count({...ctx.query}),
-			users: 			await strapi.query('user', 'users-permissions').count({...ctx.query}),
+			comments: 		await strapi.query('comments').count({...ctx.query}),
+			users: 			await strapi.query('users-permissions').count({...ctx.query}),
 			pending_jokes: 	await strapi.services.jokes.countPending(ctx),
 			//members: await strapi. strapi.services.users.count({...ctx.query}),
 			visits: 0,
@@ -27,9 +24,9 @@ module.exports = {
 			};
 
 		if (ctx.query._q) {
-			entities = await strapi.query('comment', 'comments').search(ctx.query);
+			entities = await strapi.query('comments').search(ctx.query);
 		} else {
-			entities = await strapi.query('comment', 'comments').find(ctx.query,);
+			entities = await strapi.query('comments').find(ctx.query,);
 		}
 
 		// remove deleted jokes and adult content
@@ -56,4 +53,4 @@ module.exports = {
 	async updateProfile(ctx){
 		return;
 	}
-};
+}
