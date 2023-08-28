@@ -1,0 +1,3204 @@
+// .editorconfig
+root = true
+
+[*]
+indent_style = tab
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[{package.json,*.yml}]
+indent_style = tab 
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+
+// .env.example
+HOST=0.0.0.0
+PORT=1337
+APP_KEYS="toBeModified1,toBeModified2"
+API_TOKEN_SALT=tobemodified
+ADMIN_JWT_SECRET=tobemodified
+JWT_SECRET=tobemodified
+
+
+// .github/workflows/deploy-image.yml
+name: Create and publish a Docker image
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+        
+      - name: Log in to the container registery
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          flavor: latest=true
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            "NODE_ENV=production "
+
+// config/admin.ts
+export default ({ env }) => ({
+  auth: {
+    secret: env('ADMIN_JWT_SECRET'),
+  },
+  apiToken: {
+    salt: env('API_TOKEN_SALT'),
+  },
+  transfer: {
+    token: {
+      salt: env('TRANSFER_TOKEN_SALT'),
+    },
+  },
+});
+
+
+// config/api.ts
+export default {
+  rest: {
+    defaultLimit: 25,
+    maxLimit: 100,
+    withCount: true,
+  },
+};
+
+
+// config/database.ts
+import path from 'path';
+
+export default ({ env }) => {
+  const client = env('DATABASE_CLIENT', 'sqlite');
+
+  const connections = {
+    mysql: {
+      connection: {
+        connectionString: env('DATABASE_URL'),
+        host: env('DATABASE_HOST', 'localhost'),
+        port: env.int('DATABASE_PORT', 3306),
+        database: env('DATABASE_NAME', 'strapi'),
+        user: env('DATABASE_USERNAME', 'strapi'),
+        password: env('DATABASE_PASSWORD', 'strapi'),
+        ssl: env.bool('DATABASE_SSL', false) && {
+          key: env('DATABASE_SSL_KEY', undefined),
+          cert: env('DATABASE_SSL_CERT', undefined),
+          ca: env('DATABASE_SSL_CA', undefined),
+          capath: env('DATABASE_SSL_CAPATH', undefined),
+          cipher: env('DATABASE_SSL_CIPHER', undefined),
+          rejectUnauthorized: env.bool(
+            'DATABASE_SSL_REJECT_UNAUTHORIZED',
+            true
+          ),
+        },
+      },
+      pool: { min: env.int('DATABASE_POOL_MIN', 2), max: env.int('DATABASE_POOL_MAX', 10) },
+    },
+    mysql2: {
+      connection: {
+        host: env('DATABASE_HOST', 'localhost'),
+        port: env.int('DATABASE_PORT', 3306),
+        database: env('DATABASE_NAME', 'strapi'),
+        user: env('DATABASE_USERNAME', 'strapi'),
+        password: env('DATABASE_PASSWORD', 'strapi'),
+        ssl: env.bool('DATABASE_SSL', false) && {
+          key: env('DATABASE_SSL_KEY', undefined),
+          cert: env('DATABASE_SSL_CERT', undefined),
+          ca: env('DATABASE_SSL_CA', undefined),
+          capath: env('DATABASE_SSL_CAPATH', undefined),
+          cipher: env('DATABASE_SSL_CIPHER', undefined),
+          rejectUnauthorized: env.bool(
+            'DATABASE_SSL_REJECT_UNAUTHORIZED',
+            true
+          ),
+        },
+      },
+      pool: { min: env.int('DATABASE_POOL_MIN', 2), max: env.int('DATABASE_POOL_MAX', 10) },
+    },
+    postgres: {
+      connection: {
+        connectionString: env('DATABASE_URL'),
+        host: env('DATABASE_HOST', 'localhost'),
+        port: env.int('DATABASE_PORT', 5432),
+        database: env('DATABASE_NAME', 'strapi'),
+        user: env('DATABASE_USERNAME', 'strapi'),
+        password: env('DATABASE_PASSWORD', 'strapi'),
+        ssl: env.bool('DATABASE_SSL', false) && {
+          key: env('DATABASE_SSL_KEY', undefined),
+          cert: env('DATABASE_SSL_CERT', undefined),
+          ca: env('DATABASE_SSL_CA', undefined),
+          capath: env('DATABASE_SSL_CAPATH', undefined),
+          cipher: env('DATABASE_SSL_CIPHER', undefined),
+          rejectUnauthorized: env.bool(
+            'DATABASE_SSL_REJECT_UNAUTHORIZED',
+            true
+          ),
+        },
+        schema: env('DATABASE_SCHEMA', 'public'),
+      },
+      pool: { min: env.int('DATABASE_POOL_MIN', 2), max: env.int('DATABASE_POOL_MAX', 10) },
+    },
+    sqlite: {
+      connection: {
+        filename: path.join(
+          __dirname,
+          '..',
+          '..',
+          env('DATABASE_FILENAME', 'data.db')
+        ),
+      },
+      useNullAsDefault: true,
+    },
+  };
+
+  return {
+    connection: {
+      client,
+      ...connections[client],
+      acquireConnectionTimeout: env.int('DATABASE_CONNECTION_TIMEOUT', 60000),
+    },
+  };
+};
+
+
+// config/middlewares.ts
+export default [
+  'strapi::errors',
+  'strapi::security',
+  'strapi::cors',
+  'strapi::poweredBy',
+  'strapi::logger',
+  'strapi::query',
+  'strapi::body',
+  'strapi::session',
+  'strapi::favicon',
+  'strapi::public',
+];
+
+
+// config/server.ts
+export default ({ env }) => ({
+  host: env('HOST', '0.0.0.0'),
+  port: env.int('PORT', 1337),
+  app: {
+    keys: env.array('APP_KEYS'),
+  },
+  webhooks: {
+    populateRelations: env.bool('WEBHOOKS_POPULATE_RELATIONS', false),
+  },
+});
+
+
+// database/migrations/.gitkeep
+
+
+// package.json
+{
+  "name": "f-6-sny-v-4",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A Strapi application",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "build": "strapi build",
+    "strapi": "strapi"
+  },
+  "dependencies": {
+    "@6degrees/arabic-strings": "^1.0.1",
+    "@strapi/plugin-i18n": "4.10.5",
+    "@strapi/plugin-users-permissions": "4.10.5",
+    "@strapi/strapi": "4.10.5",
+    "colors": "^1.4.0",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.3.2",
+    "prompts": "^2.4.2",
+    "strapi-plugin-comments": "^2.2.10",
+    "strapi-plugin-passwordless": "^4.0.9"
+  },
+  "author": {
+    "name": "A Strapi developer"
+  },
+  "strapi": {
+    "uuid": "815529dd-ea1d-434c-a483-b13a541c6060"
+  },
+  "engines": {
+    "node": ">=14.19.1 <=18.x.x",
+    "npm": ">=6.0.0"
+  },
+  "license": "MIT"
+}
+
+
+// public/robots.txt
+# To prevent search engines from seeing the site altogether, uncomment the next two lines:
+# User-Agent: *
+# Disallow: /
+
+
+// public/uploads/.gitkeep
+
+
+// src/admin/app.example.tsx
+export default {
+  config: {
+    locales: [
+      // 'ar',
+      // 'fr',
+      // 'cs',
+      // 'de',
+      // 'dk',
+      // 'es',
+      // 'he',
+      // 'id',
+      // 'it',
+      // 'ja',
+      // 'ko',
+      // 'ms',
+      // 'nl',
+      // 'no',
+      // 'pl',
+      // 'pt-BR',
+      // 'pt',
+      // 'ru',
+      // 'sk',
+      // 'sv',
+      // 'th',
+      // 'tr',
+      // 'uk',
+      // 'vi',
+      // 'zh-Hans',
+      // 'zh',
+    ],
+  },
+  bootstrap(app) {
+    console.log(app);
+  },
+};
+
+
+// src/admin/tsconfig.json
+{
+  "extends": "@strapi/typescript-utils/tsconfigs/admin",
+  "include": [
+    "../plugins/**/admin/src/**/*",
+    "./"
+  ],
+  "exclude": [
+    "node_modules/",
+    "build/",
+    "dist/",
+    "**/*.test.ts"
+  ]
+}
+
+
+// src/admin/webpack.config.example.js
+'use strict';
+
+/* eslint-disable no-unused-vars */
+module.exports = (config, webpack) => {
+  // Note: we provide webpack above so you should not `require` it
+  // Perform customizations to webpack config
+  // Important: return the modified config
+  return config;
+};
+
+
+// src/api/.gitkeep
+
+
+// src/api/globalcall/controllers/globalcall.ts
+const { filter_array } = require('../../../utilities/mfo_tools')
+
+export default {
+    async getCounters(ctx) {
+		const counters = {
+			total_jokes: 	await strapi.query('api::joke.joke').count({...ctx.query}),
+			deleted_jokes: 	await strapi.query('api::joke.joke').count({status: 'deleted'}),
+			comments: 		await strapi.query('plugin::comments.comment').count({...ctx.query}),
+			users: 			await strapi.query('plugin::users-permissions.user').count({...ctx.query}),
+			pending_jokes: 	await strapi.service('api::joke.joke').countPending(ctx),
+			//members: await strapi. strapi.services.users.count({...ctx.query}),
+			visits: 0,
+		}
+		return counters;
+	},
+
+	async getLatestComments(ctx) {
+		let entities;
+		ctx.query = {
+			...ctx.query,
+			_limit: 30,
+			_sort: "id:DESC",		
+			// TODO: add one for status later, to filter out blocked or not active comments
+			};
+
+		if (ctx.query._q) {
+			entities = await strapi.query('comments').search(ctx.query);
+		} else {
+			entities = await strapi.query('comments').find(ctx.query,);
+		}
+
+		// remove deleted jokes and adult content
+		entities = await filter_array(entities, async element => {
+			let keep = true;
+			if(element.related[0].status == 'deleted'){
+				keep = false;
+			}
+			
+			let is_adult_joke = await strapi.service('api::globalcall.globalcall').isAdultJoke(element.related[0].id);
+			if(is_adult_joke){
+				console.log("is adult")
+				keep = false;
+			}
+
+			return keep;
+		})
+
+		//console.log(entities[0])
+		return entities.slice(0,10);
+
+	},
+  
+	async updateProfile(ctx){
+		return;
+	}
+}
+
+// src/api/globalcall/routes/globalcall.ts
+export default {
+    routes:[
+        {
+            method: 'GET',
+            path: '/globalcall/counters',
+            handler: 'globalcall.getCounters',
+        },
+        {
+            method: 'GET',
+            path: '/globalcall/getLatestComments',
+            handler: 'globalcall.getLatestComments',
+        }
+    ]
+}
+
+// src/api/globalcall/services/globalcall.ts
+export default {
+    async isAdultJoke(joke_id){
+        // get the joke object
+        let is_adult_joke = false;
+        let joke = await strapi.services.jokes.findOne({id: joke_id});
+
+        joke.tags.forEach(tag => {
+            if(tag.adult_content == true){
+                is_adult_joke = true;
+            }
+        });
+
+        return is_adult_joke;
+    },
+
+    clean_arabic(string){
+        return;
+    },
+
+    clean_adult_content(jokes_array,adult_selection) {
+        if(!adult_selection){
+            jokes_array = jokes_array.filter(element => {
+                let visibile = true;
+
+                element.tags.forEach(tag => {
+                    if(tag.adult_content) {
+                        visibile = false;
+                        return;
+                    }
+                });
+           
+                if(!visibile) return undefined;
+                else return element;
+              })
+        }
+        return jokes_array;
+    }
+}
+
+// src/api/joke/content-types/joke/schema.json
+{
+  "kind": "collectionType",
+  "collectionName": "jokes",
+  "info": {
+    "singularName": "joke",
+    "pluralName": "jokes",
+    "displayName": "Joke",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "content": {
+      "type": "text",
+      "required": true
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "active",
+        "pending",
+        "reported",
+        "deleted"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "unique": true
+    },
+    "remarks": {
+      "type": "text",
+      "private": true
+    },
+    "tags": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::tag.tag",
+      "inversedBy": "jokes"
+    },
+    "votes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::vote.vote"
+    },
+    "author": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}
+
+
+// src/api/joke/controllers/joke.ts
+/**
+ * joke controller
+ */
+
+import { factories } from '@strapi/strapi'
+
+// const { createCoreController } = require('@strapi/strapi').factories;
+// module.exports = createCoreController('api::joke.joke', ({ strapi }) => ({
+//     async find(ctx) {
+//       // Calling the default core action
+//       const { data, meta } = await super.find(ctx);
+//       const query = strapi.db.query('api::joke.joke');
+//       await Promise.all(
+//         data.map(async (item, index) => {
+//           const foundItem = await query.findOne({
+//             where: {
+//               id: item.id,
+//             },
+//             populate: ['createdBy', 'updatedBy'],
+//           });
+          
+//           data[index].attributes.createdBy = {
+//             id: foundItem.createdBy.id,
+//             firstname: foundItem.createdBy.firstname,
+//             lastname: foundItem.createdBy.lastname,
+//           };
+//           data[index].attributes.updatedBy = {
+//             id: foundItem.updatedBy.id,
+//             firstname: foundItem.updatedBy.firstname,
+//             lastname: foundItem.updatedBy.lastname,
+//           };
+//         })
+//       );
+//       return { data, meta };
+//     },
+//   }));
+  
+
+
+export default factories.createCoreController('api::joke.joke', {
+    count(ctx) {
+        var { query } = ctx.request
+        return strapi.query('api::joke.joke').count({ where: query });
+    }
+});
+
+
+
+// src/api/joke/routes/joke.ts
+/**
+ * joke router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::joke.joke');
+
+
+// src/api/joke/services/joke.ts
+/**
+ * joke service
+ */
+
+import { factories } from '@strapi/strapi';
+import { Context } from "koa";
+
+export default factories.createCoreService('api::joke.joke', {
+    async getAlreadyVoted(request_user, ip_address){
+      console.log("getAlreadyVoted", request_user, ip_address)
+        // Check if reqeuster is  not administrator , then get the list of all jokes voted on.
+        let result;
+        if(request_user?.role?.name != "Administrator"){
+          // GET WHAT USER ALREADY VOTED ON
+          let connection_string = this.getAlreadyVotedConnectionString(request_user, ip_address);
+  
+          const rawBuilder = strapi.db.connection.raw(connection_string);
+          const resp = await rawBuilder.then();
+          const already_voted = resp[0];
+  
+          return already_voted.map(elem => {
+              return elem.joke_id;
+          })
+        }
+      },
+  
+      getAlreadyVotedConnectionString(request_user, ip_address){
+        // native db query  to get user previous votes, either by IP or user ID
+        let connection_string = `
+          select jokes_votes_links.joke_id 
+          from votes 
+          left join jokes_votes_links on jokes_votes_links.vote_id = votes.id
+          left join jokes_author_links on jokes_author_links.joke_id = jokes_votes_links.joke_id
+          
+          where `;
+  
+        // Check the identifier
+        if(request_user) { connection_string += `author = "${request_user.id}" OR` }
+        connection_string += ` ip_address = "${ip_address} group by joke_id"`
+        return connection_string;
+      },
+  
+      async countPending(ctx : Context) {
+        const ipAddress = ctx.req.socket.remoteAddress || ctx.request.socket.remoteAddress //ctx.req.socket._peername.address;
+        const { isAuthenticated, user } = ctx.state // check if authenticated request or not, might be useful in another file
+        const alreadyVotedIds = await this.getAlreadyVoted({ user, ipAddress });
+      
+        const query = {
+          id_nin: alreadyVotedIds,
+          _sort: 'id:DESC',
+          status: 'pending',
+        };
+      
+        const entities = ctx.query._q ? await strapi.services.jokes.search(query) : await strapi.services.jokes.find(query);
+      
+        const cleanedEntities = strapi.services.globalcalls.clean_adult_content(entities, 0);
+      
+        return cleanedEntities.length;
+      }
+});
+
+
+// src/api/page/content-types/page/schema.json
+{
+  "kind": "collectionType",
+  "collectionName": "pages",
+  "info": {
+    "singularName": "page",
+    "pluralName": "pages",
+    "displayName": "Page",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "unique": true,
+      "required": true
+    },
+    "content": {
+      "type": "richtext",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "required": true
+    },
+    "votes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::vote.vote"
+    }
+  }
+}
+
+
+// src/api/page/controllers/page.ts
+/**
+ * page controller
+ */
+
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::page.page');
+
+
+// src/api/page/routes/page.ts
+/**
+ * page router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::page.page');
+
+
+// src/api/page/services/page.ts
+/**
+ * page service
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::page.page');
+
+
+// src/api/tag/content-types/tag/schema.json
+{
+  "kind": "collectionType",
+  "collectionName": "tags",
+  "info": {
+    "singularName": "tag",
+    "pluralName": "tags",
+    "displayName": "Tag",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "hex_color": {
+      "type": "string",
+      "maxLength": 7,
+      "minLength": 7
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "jokes": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::joke.joke",
+      "mappedBy": "tags"
+    },
+    "safe_content_preference": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "moderate"
+    }
+  }
+}
+
+
+// src/api/tag/controllers/tag.ts
+/**
+ * tag controller
+ */
+
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::tag.tag');
+
+
+// src/api/tag/routes/tag.ts
+/**
+ * tag router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::tag.tag');
+
+
+// src/api/tag/services/tag.ts
+/**
+ * tag service
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::tag.tag');
+
+
+// src/api/vote/content-types/vote/schema.json
+{
+  "kind": "collectionType",
+  "collectionName": "votes",
+  "info": {
+    "singularName": "vote",
+    "pluralName": "votes",
+    "displayName": "Vote",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "value": {
+      "type": "enumeration",
+      "enum": [
+        "up",
+        "down",
+        "neutral"
+      ],
+      "default": "neutral",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "author": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
+    }
+  }
+}
+
+
+// src/api/vote/controllers/vote.ts
+/**
+ * vote controller
+ */
+
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::vote.vote');
+
+
+// src/api/vote/routes/vote.ts
+/**
+ * vote router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::vote.vote');
+
+
+// src/api/vote/services/vote.ts
+/**
+ * vote service
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::vote.vote');
+
+
+// src/extensions/.gitkeep
+
+
+// src/extensions/users-permissions/content-types/user/schema.json
+{
+  "kind": "collectionType",
+  "collectionName": "up_users",
+  "info": {
+    "name": "user",
+    "description": "",
+    "singularName": "user",
+    "pluralName": "users",
+    "displayName": "User"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "unique": true,
+      "configurable": false,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "minLength": 6,
+      "configurable": false,
+      "required": true
+    },
+    "provider": {
+      "type": "string",
+      "configurable": false
+    },
+    "password": {
+      "type": "password",
+      "minLength": 6,
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "resetPasswordToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "confirmationToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true,
+      "searchable": false
+    },
+    "confirmed": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "role": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.role",
+      "inversedBy": "users",
+      "configurable": false
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "date_of_birth": {
+      "type": "date"
+    },
+    "biography": {
+      "type": "string"
+    },
+    "safe_content_preference": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "moderate",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "enumeration",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "default": "male",
+      "required": true
+    }
+  }
+}
+
+
+// src/index.ts
+export default {
+  /**
+   * An asynchronous register function that runs before
+   * your application is initialized.
+   *
+   * This gives you an opportunity to extend code.
+   */
+  register(/*{ strapi }*/) {},
+
+  /**
+   * An asynchronous bootstrap function that runs before
+   * your application gets started.
+   *
+   * This gives you an opportunity to set up your data model,
+   * run jobs, or perform some special logic.
+   */
+  bootstrap(/*{ strapi }*/) {},
+};
+
+
+// src/utilities/clean_database.ts
+namespace JokesDatabaseCleaner {
+	const mysql = require("mysql2/promise");
+	const prompts = require("prompts");
+	const arabicString = require("@6degrees/arabic-strings");
+	require("colors");
+
+	require("dotenv").config();
+
+	require("util").inspect.defaultOptions.depth = 1;
+
+	var pool1 = mysql.createPool({
+		connectionLimit: 300,
+		host: process.env.DATABASE_HOST_OLD,
+		user: process.env.DATABASE_USERNAME_OLD,
+		password: process.env.DATABASE_PASSWORD_OLD,
+		database: process.env.DATABASE_NAME_OLD,
+	});
+
+	let my_sql_pool_connection;
+
+	async function clean() {
+		my_sql_pool_connection = await pool1.getConnection();
+
+		try {
+			// Clean joke slugs
+			await clean_slugs();
+		} catch (error) {
+			console.error(error);
+		}
+
+		console.log("reached here");
+		my_sql_pool_connection.release();
+		process.exit(0);
+	}
+
+	async function clean_slugs() {
+		const characters = "ًٌٍَُِِّْے~!@#$?؟ہ^!";
+
+		let result = await my_sql_pool_connection.query(
+			`SELECT * FROM jokes where slug REGEXP '[${characters}]';`
+		);
+
+		if (Array.isArray(result[0]) && result[0].length > 0) {
+			// we got results, lets loop through for bunches of CHUNK_SIZE and prompt for cleaning
+
+			let response = await prompts({
+				type: "confirm",
+				name: "value",
+				message: `Found ${result[0].length}  results, do you want to see them ?`,
+				initial: true,
+			});
+
+			if (response.value == true) {
+				const CHUNK_SIZE = 100;
+				const chunked_array = chunkArray(result[0], CHUNK_SIZE);
+
+				// loop through the chunks
+				for (const group of chunked_array) {
+					// loop through the chunk and show original and fix, then prompt the user for fix
+					let fixed_jokes_slugs_array = [];
+					
+					for (const item of group) {
+						let string_to_clean = item.slug;
+						string_to_clean = arabicString.sanitize(string_to_clean);
+						string_to_clean = arabicString.removeNonArabic(string_to_clean,"-");
+						string_to_clean = string_to_clean.replace("--", "-");
+						fixed_jokes_slugs_array.push({
+							id: item.id,
+							slug: string_to_clean,
+						});
+
+						console.log(item.slug + "\t" + string_to_clean.green);
+					}
+
+					let fix_slug_response = await prompts({ 
+						type: "confirm",
+						name: "value",
+						message: `do you want to fix them ??`,
+						initial: true,
+					});
+
+					if (fix_slug_response.value == true) {
+						console.log(
+							"oh my god, you want to fix them 👀, ok, we will do it for you, hang tight"
+						);
+						//console.log(fixed_jokes_slugs_array[0]);
+						await updateRecords('jokes',fixed_jokes_slugs_array);
+
+
+						let continue_fix_slug_response = await prompts({
+							type: "confirm",
+							name: "value",
+							message: `shall we continue or stop ??`,
+							initial: true,
+						});
+
+						if (continue_fix_slug_response.value == false) {break;}
+					} else {
+						console.log("I hope you are sure about this");
+					}
+				}
+			}
+		} else {
+			console.log("found nothing, moving to next check");
+		}
+	}
+
+	function chunkArray(arr, CHUNK_SIZE) {
+		let return_array = [];
+
+		for (let i = 0; i < arr.length; i += CHUNK_SIZE) {
+			const chunk = arr.slice(i, i + CHUNK_SIZE);
+			return_array.push(chunk);
+		}
+
+		return return_array;
+	}
+
+	async function updateRecords(table_name, records) {	
+		for (const record of records) {
+			const record_id = record.id;
+			console.log(`Fixing ${table_name} record ${record_id}`)
+			delete record.id;
+			try {
+				let result = await my_sql_pool_connection.query(
+					`UPDATE ${table_name} SET ? WHERE id = ?`,
+					[record, record_id]
+				);
+			} catch (error) {
+				console.log('couldnt update it, an error occured', error.message.red)
+				continue;
+			}
+			
+		}
+	}
+
+	clean();
+}
+
+
+// src/utilities/mfo_tools.ts
+//const slug = require('slugify');
+const allowed_characters_regex = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
+
+function strip_tags_and_new_lines(text) {
+    if (!text) return false;
+    text = text.toString();
+    return text.replace(/<\/?[^>]+>|[\r\n]/g, '');
+}
+
+function shorten(text, maxLen, separator = ' ') {
+    if (text.length <= maxLen) return text;
+    if (typeof separator !== 'string' || separator.length === 0) {
+        throw new Error('Invalid separator argument: must be a non-empty string');
+    }
+    return text.substr(0, text.lastIndexOf(separator, maxLen));
+}
+
+
+export default {
+
+    clean_adult_content(jokes_array, adult_selection) {
+        if (!adult_selection) {
+            jokes_array = jokes_array.filter(elem => {
+                let visibile = true;
+
+                elem.tags.forEach(element => {
+                    if (element.adult_content) {
+                        visibile = false;
+                        return;
+                    }
+                });
+
+                if (!visibile) return undefined;
+                else return elem;
+            })
+        }
+        return jokes_array;
+    },
+
+    async filter_array(arr, callback) {
+        const fail = Symbol()
+        return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i => i !== fail)
+    },
+
+    generate_slug(text) {
+        text = strip_tags_and_new_lines(text);
+        text = text.replace(/ +(?= )/g, '');
+        text = text.trim();
+        text = text.replace("يقول لك", "");
+        text = text.replace(allowed_characters_regex, "");
+        text = text.trim();
+        text = shorten(text, 50).trim().replace(/[" "]/g, "-");
+        return text
+    },
+
+}
+
+// src/utilities/migrate_db.ts
+namespace JokesDatabaseCleaner {
+	var mysql = require("mysql2/promise");
+require('dotenv').config();
+
+require('util').inspect.defaultOptions.depth = 1;
+//console.log(process.env);
+var pool1 = mysql.createPool({
+	connectionLimit: 300,
+	host: process.env.DATABASE_HOST_OLD,
+	user: process.env.DATABASE_USERNAME_OLD,
+	password: process.env.DATABASE_PASSWORD_OLD,
+	database: process.env.DATABASE_NAME_OLD,
+});
+
+var pool2 = mysql.createPool({
+	connectionLimit: 300,
+	host: process.env.DATABASE_HOST,
+	user: process.env.DATABASE_USERNAME,
+	password: process.env.DATABASE_PASSWORD,
+	database: process.env.DATABASE_NAME,
+});
+
+let connection_1, connection_2;
+
+async function migrateData() {
+	connection_1 = await pool1.getConnection();
+	connection_2 = await pool2.getConnection();
+	
+	try {
+		let data: any = {};
+
+		// GET DATA
+		data.tags = await connection_1.query("SELECT * FROM tags");
+		data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");	
+		data.pages = await connection_1.query("SELECT * FROM pages");
+		data.comments = await connection_1.query("SELECT * FROM comments");
+		data.votes = await connection_1.query("SELECT * FROM votes");
+		data.jokes = await connection_1.query("SELECT * FROM jokes");
+		data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
+		data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
+		data.comments_comment_author_user_links = [];
+		data.users_roles = [];
+		data.votes_authors = [];
+		data.jokes_authors = [];
+
+		// fix jokes parameters
+		data.jokes[0] = data.jokes[0].map((joke) => {
+			data.jokes_authors.push({
+				joke_id: joke.id,
+				user_id: joke.created_by,
+			});
+	
+			renameObjectProperty(joke,"created_by", "created_by_id");
+			renameObjectProperty(joke,"updated_by", "updated_by_id");
+			joke.created_by_id = 1;
+			joke.updated_by_id = 1;
+
+			delete joke.author;
+			return joke;
+		});
+
+		// fix user parameters
+		data.users[0] = data.users[0].map((user) =>{
+			data.users_roles.push({
+				user_id: user.id,
+				role_id: user.role
+			})
+
+			delete user.role;
+
+			if(user.adult_content == 'hide'){
+				user.adult_content = 'moderate';
+			}else{
+				user.adult_content = 'open';
+			}
+
+			renameObjectProperty(user,"resetPasswordToken", "reset_password_token");
+			renameObjectProperty(user,"created_by", "created_by_id");
+			renameObjectProperty(user,"updated_by", "updated_by_id");
+			renameObjectProperty(user,"confirmationToken", "confirmation_token");
+			renameObjectProperty(user,"adult_content", "safe_content_preference");
+
+			return user;
+		})
+
+		// fix comments complicated
+		data.comments[0] = data.comments[0].map((comment) =>{
+			if(comment.authorUser){
+				data.comments_comment_author_user_links.push({
+					user_id: comment.authorUser,
+					comment_id: comment.id
+				})	
+			}
+
+			renameObjectProperty(comment,"authorName", "author_name");
+			renameObjectProperty(comment,"authorEmail", "author_email");
+			renameObjectProperty(comment,"authorAvatar", "author_avatar");
+			renameObjectProperty(comment,"created_by", "created_by_id");
+			renameObjectProperty(comment,"updated_by", "updated_by_id");
+			renameObjectProperty(comment,"approvalStatus", "approval_status");
+
+			comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
+			delete comment.relatedSlug;
+			delete comment.blockedThread;
+			delete comment.blockReason;
+			delete comment.points;
+			delete comment.authorUser;
+			delete comment.authorType;
+			delete comment.authorId;
+			delete comment.threadOf;
+			delete comment.author;
+			
+			return comment;
+		})
+
+		// fix tags
+		data.tags[0] = data.tags[0].map((tag) =>{
+			if(tag.adult_content == 'hide'){
+				tag.adult_content = 'moderate';
+			}else{
+				tag.adult_content = 'open';
+			}
+
+			renameObjectProperty(tag,"adult_content", "safe_content_preference");
+			renameObjectProperty(tag,"created_by", "created_by_id");
+			renameObjectProperty(tag,"updated_by", "updated_by_id");
+
+			return tag;
+		})
+
+		// fix pages
+		data.pages[0] = data.pages[0].map((page) =>{
+			renameObjectProperty(page,"created_by", "created_by_id");
+			renameObjectProperty(page,"updated_by", "updated_by_id");
+
+			return page;
+		})
+
+		// fix votes
+		data.votes[0] = data.votes[0].map((vote) =>{
+			if(vote.author){
+				data.votes_authors.push({
+					vote_id: vote.id,
+					user_id: vote.author
+				})
+			}
+			else if(vote.created_by != 1){
+				data.votes_authors.push({
+					vote_id: vote.id,
+					user_id: vote.created_by
+				})
+			}
+
+			delete vote.author;
+
+			renameObjectProperty(vote,"created_by", "created_by_id");
+			renameObjectProperty(vote,"updated_by", "updated_by_id");
+
+			vote.created_by_id = 1;
+			vote.updated_by_id = 1;
+
+			return vote;
+		})
+
+		console.log(`
+got:
+	${data.jokes[0].length} jokes, 
+	${data.tags[0].length} tags, 
+	${data.users[0].length} users, 
+	${data.comments[0].length} comments
+	${data.votes[0].length} votes
+	${data.pages[0].length} pages`
+);
+
+		// clear bfore insert
+		await resetTablesContent();
+		//await chunkAndRun(data.pages[0], 200, "pages");
+		//await chunkAndRun(data.users[0], 400, "up_users");
+		//await chunkAndRun(data.tags[0], 200, "tags");
+		//await chunkAndRun(data.jokes[0], 200, "jokes");
+		//await chunkAndRun(data.votes[0], 200, "votes");
+
+		//await chunkAndRun(data.jokes_authors,300,"jokes_author_links");
+		await chunkAndRun(data.jokes_tags[0], 200, "jokes_tags_links");
+		await chunkAndRun(data.jokes_votes[0], 200, "jokes_votes_links");
+		await chunkAndRun(data.users_roles, 400, "up_users_role_links");
+		await chunkAndRun(data.votes_authors, 200, "votes_author_links");
+		
+		await chunkAndRun(data.comments[0], 400, "comments_comment");
+		await chunkAndRun(data.comments_comment_author_user_links, 200, "comments_comment_author_user_links");
+
+		console.log("finished first insert batch");
+		
+	} 
+	catch (error) {
+		console.error(error);
+	}
+}
+
+async function chunkAndRun(	array: Array<any>,	chunk_size: number,	table_name: string, reset_table_content: boolean = false) {
+
+	if(reset_table_content){
+		resetTablesContent(table_name);
+	}
+
+	connection_1 = await pool1.getConnection();
+	connection_2 = await pool2.getConnection();
+	const sql_statement = `INSERT INTO ${table_name} SET ?`;
+	console.log("executing " + sql_statement);
+	
+
+	let promise_group = array.map((data) => connection_2.query(sql_statement, data));
+
+	let return_array = [];
+
+	for (let i = 0; i < promise_group.length; i += chunk_size) {
+		const chunk = promise_group.slice(i, i + chunk_size);
+		return_array.push(chunk);
+	}
+
+	let count = 1;
+
+	for (const item of return_array) {
+		console.log(`inserting batch ${count}/${return_array.length}`);
+		const insertResults = await Promise.all(item);
+		count++;
+	}
+
+	// Kill connections
+	connection_1.release();
+	connection_2.release();
+}
+
+function renameObjectProperty(obj,oldProperty,newProperty){
+
+	Object.defineProperty(
+		obj,
+		newProperty,
+	Object.getOwnPropertyDescriptor(obj, oldProperty)
+	);
+	delete obj[oldProperty];
+
+}
+
+async function resetTablesContent(table_name = ''){
+	const database_tables = [
+		//'pages',
+		//'up_users',
+		//'tags',
+	//	'jokes',
+	//	'votes',
+	//	'jokes_author_links',
+		'jokes_tags_links',
+		'jokes_votes_links',
+		'up_users_role_links',
+		'votes_author_links',
+		'comments_comment',
+		'comments_comment_author_user_links',
+	];
+
+	await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
+
+	for (const table of database_tables) {
+		await connection_2.query(`Truncate table ${table}`);
+	}
+
+	await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");
+}
+
+migrateData();
+}
+
+
+// src/utilities/private/clean_database.ts
+var mysql = require("mysql2/promise");
+const prompts = require('prompts');
+const arabicString = require('@6degrees/arabic-strings');
+require('dotenv').config();
+require('util').inspect.defaultOptions.depth = 1;
+
+async function main() {
+	console.log('creating sql connection pool')
+	const pool1 = mysql.createPool({
+		connectionLimit: 300,
+		host: process.env.DATABASE_HOST_OLD,
+		user: process.env.DATABASE_USERNAME_OLD,
+		password: process.env.DATABASE_PASSWORD_OLD,
+		database: process.env.DATABASE_NAME_OLD,
+	});
+	console.log('connecting to the')
+	let mycon = await pool1.getConnection();
+	
+	try {
+		// Clean joke slugs
+		const characters = 'ًٌٍَُِِّْے~!@#$?؟ہ^!';
+
+		let result = await mycon.query(`SELECT * FROM jokes where slug REGEXP '[${characters}]';`);
+		
+		if(result[0].length>0){
+			let response = await prompts({
+				type: 'confirm',
+				name: 'value',
+				message: `Found ${result[0].length}  results, do you want to see them ?`,
+				initial: true
+			  });
+			  
+			  if(response.value == true){
+
+				for(let i =0; i <= 20; i++){
+					let mystr = result[0][i].slug;
+					console.log(mystr);
+
+					mystr = arabicString.sanitize(mystr);
+					mystr = arabicString.removeNonArabic(mystr, "-");
+					mystr = mystr.replace('--','-');
+					console.log(mystr + '\r\n')
+				}
+
+			  }
+
+			  response = await prompts({
+				type: 'confirm',
+				name: 'value',
+				message: `do you want to fix them ?`,
+				initial: true
+			  });
+
+			  console.log('oh my god, you want to fix them 👀');
+		}
+		else{
+			console.log('found nothing, moving to next check')
+		}
+		  
+		   
+	} 
+	catch (error) {
+		console.error(error);
+	}
+
+	console.log('reached here')
+	process.exit(0);
+
+}
+
+main();
+
+// src/utilities/private/migrate_db.ts
+var mysql = require("mysql2/promise");
+require('dotenv').config();
+
+require('util').inspect.defaultOptions.depth = 1;
+//console.log(process.env);
+var pool1 = mysql.createPool({
+	connectionLimit: 300,
+	host: process.env.DATABASE_HOST_OLD,
+	user: process.env.DATABASE_USERNAME_OLD,
+	password: process.env.DATABASE_PASSWORD_OLD,
+	database: process.env.DATABASE_NAME_OLD,
+});
+
+var pool2 = mysql.createPool({
+	connectionLimit: 300,
+	host: process.env.DATABASE_HOST,
+	user: process.env.DATABASE_USERNAME,
+	password: process.env.DATABASE_PASSWORD,
+	database: process.env.DATABASE_NAME,
+});
+
+let connection_1, connection_2;
+
+async function migrateData() {
+	connection_1 = await pool1.getConnection();
+	connection_2 = await pool2.getConnection();
+	
+	try {
+		let data: any = {};
+
+		// GET DATA
+		data.tags = await connection_1.query("SELECT * FROM tags");
+		data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");	
+		data.pages = await connection_1.query("SELECT * FROM pages");
+		data.comments = await connection_1.query("SELECT * FROM comments");
+		data.votes = await connection_1.query("SELECT * FROM votes");
+		data.jokes = await connection_1.query("SELECT * FROM jokes");
+		data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
+		data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
+		data.comments_comment_author_user_links = [];
+		data.users_roles = [];
+		data.votes_authors = [];
+		data.jokes_authors = [];
+
+		// fix jokes parameters
+		data.jokes[0] = data.jokes[0].map((joke) => {
+			data.jokes_authors.push({
+				joke_id: joke.id,
+				user_id: joke.created_by,
+			});
+	
+			renameObjectProperty(joke,"created_by", "created_by_id");
+			renameObjectProperty(joke,"updated_by", "updated_by_id");
+			joke.created_by_id = 1;
+			joke.updated_by_id = 1;
+
+			delete joke.author;
+			return joke;
+		});
+
+		// fix user parameters
+		data.users[0] = data.users[0].map((user) =>{
+			data.users_roles.push({
+				user_id: user.id,
+				role_id: user.role
+			})
+
+			delete user.role;
+
+			if(user.adult_content == 'hide'){
+				user.adult_content = 'moderate';
+			}else{
+				user.adult_content = 'open';
+			}
+
+			renameObjectProperty(user,"resetPasswordToken", "reset_password_token");
+			renameObjectProperty(user,"created_by", "created_by_id");
+			renameObjectProperty(user,"updated_by", "updated_by_id");
+			renameObjectProperty(user,"confirmationToken", "confirmation_token");
+			renameObjectProperty(user,"adult_content", "safe_content_preference");
+
+			return user;
+		})
+
+		// fix comments complicated
+		data.comments[0] = data.comments[0].map((comment) =>{
+			if(comment.authorUser){
+				data.comments_comment_author_user_links.push({
+					user_id: comment.authorUser,
+					comment_id: comment.id
+				})	
+			}
+
+			renameObjectProperty(comment,"authorName", "author_name");
+			renameObjectProperty(comment,"authorEmail", "author_email");
+			renameObjectProperty(comment,"authorAvatar", "author_avatar");
+			renameObjectProperty(comment,"created_by", "created_by_id");
+			renameObjectProperty(comment,"updated_by", "updated_by_id");
+			renameObjectProperty(comment,"approvalStatus", "approval_status");
+
+			comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
+			delete comment.relatedSlug;
+			delete comment.blockedThread;
+			delete comment.blockReason;
+			delete comment.points;
+			delete comment.authorUser;
+			delete comment.authorType;
+			delete comment.authorId;
+			delete comment.threadOf;
+			delete comment.author;
+			
+			return comment;
+		})
+
+		// fix tags
+		data.tags[0] = data.tags[0].map((tag) =>{
+			if(tag.adult_content == 'hide'){
+				tag.adult_content = 'moderate';
+			}else{
+				tag.adult_content = 'open';
+			}
+
+			renameObjectProperty(tag,"adult_content", "safe_content_preference");
+			renameObjectProperty(tag,"created_by", "created_by_id");
+			renameObjectProperty(tag,"updated_by", "updated_by_id");
+
+			return tag;
+		})
+
+		// fix pages
+		data.pages[0] = data.pages[0].map((page) =>{
+			renameObjectProperty(page,"created_by", "created_by_id");
+			renameObjectProperty(page,"updated_by", "updated_by_id");
+
+			return page;
+		})
+
+		// fix votes
+		data.votes[0] = data.votes[0].map((vote) =>{
+			if(vote.author){
+				data.votes_authors.push({
+					vote_id: vote.id,
+					user_id: vote.author
+				})
+			}
+			else if(vote.created_by != 1){
+				data.votes_authors.push({
+					vote_id: vote.id,
+					user_id: vote.created_by
+				})
+			}
+
+			delete vote.author;
+
+			renameObjectProperty(vote,"created_by", "created_by_id");
+			renameObjectProperty(vote,"updated_by", "updated_by_id");
+
+			vote.created_by_id = 1;
+			vote.updated_by_id = 1;
+
+			return vote;
+		})
+
+		console.log(`
+got:
+	${data.jokes[0].length} jokes, 
+	${data.tags[0].length} tags, 
+	${data.users[0].length} users, 
+	${data.comments[0].length} comments
+	${data.votes[0].length} votes
+	${data.pages[0].length} pages`
+);
+
+		// clear bfore insert
+		await resetTablesContent();
+
+		await chunkAndRun(data.pages[0], 200, "INSERT INTO pages SET ?");
+		await chunkAndRun(data.users[0], 400, "INSERT INTO up_users SET ?");
+		await chunkAndRun(data.jokes[0], 200, "INSERT INTO jokes SET ?");
+		await chunkAndRun(data.tags[0], 200, "INSERT INTO tags SET ?");
+		await chunkAndRun(data.votes[0], 200, "INSERT INTO votes SET ?");
+
+		await chunkAndRun(data.jokes_authors,300,"INSERT INTO jokes_author_links SET ?"	);
+		await chunkAndRun(data.jokes_tags[0], 200, "INSERT INTO jokes_tags_links SET ?");
+		await chunkAndRun(data.jokes_votes[0], 200, "INSERT INTO jokes_votes_links SET ?");
+		await chunkAndRun(data.users_roles, 400, "INSERT INTO up_users_role_links SET ?");
+		await chunkAndRun(data.votes_authors, 200, "INSERT INTO votes_author_links SET ?");
+		
+		await chunkAndRun(data.comments[0], 400, "INSERT INTO comments_comment SET ?");
+		await chunkAndRun(data.comments_comment_author_user_links, 200, "INSERT INTO comments_comment_author_user_links SET ?");
+
+		console.log("finished first insert batch");
+		
+	} 
+	catch (error) {
+		console.error(error);
+	}
+}
+
+async function chunkAndRun(	array: Array<any>,	chunk_size: number,	sql_statement: string) {
+
+	connection_1 = await pool1.getConnection();
+	connection_2 = await pool2.getConnection();
+
+	console.log("executing " + sql_statement);
+
+	let promise_group = array.map((data) => connection_2.query(sql_statement, data));
+
+	let return_array = [];
+
+	for (let i = 0; i < promise_group.length; i += chunk_size) {
+		const chunk = promise_group.slice(i, i + chunk_size);
+		return_array.push(chunk);
+	}
+
+	let count = 1;
+
+	for (const item of return_array) {
+		console.log(`inserting batch ${count}/${return_array.length}`);
+		const insertResults = await Promise.all(item);
+		count++;
+	}
+
+	// Kill connections
+	connection_1.release();
+	connection_2.release();
+}
+
+function renameObjectProperty(obj,oldProperty,newProperty){
+
+	Object.defineProperty(
+		obj,
+		newProperty,
+	Object.getOwnPropertyDescriptor(obj, oldProperty)
+	);
+	delete obj[oldProperty];
+
+}
+
+async function resetTablesContent(){
+	const database_tables = [
+		'jokes',
+		'comments_comment',
+		'up_users',
+		'votes',
+		'tags',
+		'pages',
+		'up_users_role_links',
+		'jokes_author_links',
+		'jokes_tags_links',
+		'comments_comment_author_user_links',
+		'jokes_votes_links',
+		'up_users_role_links',
+		'votes_author_links',
+	];
+
+	await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
+
+	for (const table of database_tables) {
+		await connection_2.query(`Truncate table ${table}`);
+	}
+
+	await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");
+}
+
+migrateData();
+
+// tsconfig.json
+{
+  "extends": "@strapi/typescript-utils/tsconfigs/server",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "."
+  },
+  "include": [
+    "./",
+    "./**/*.ts",
+    "./**/*.js",
+    "src/**/*.json"
+  ],
+  "exclude": [
+    "node_modules/",
+    "build/",
+    "dist/",
+    ".cache/",
+    ".tmp/",
+    "src/admin/",
+    "**/*.test.*",
+    "src/plugins/**"
+  ]
+}
+
+
+// v3/api/jokes/config/routes.json
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/jokes",
+      "handler": "jokes.find",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+        "method": "GET",
+        "path": "/jokes/pending",
+        "handler": "jokes.findPending",
+        "config": {
+          "policies": []
+        }
+      },
+    {
+      "method": "GET",
+      "path": "/jokes/count",
+      "handler": "jokes.count",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/jokes/:id",
+      "handler": "jokes.findOne",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/jokes",
+      "handler": "jokes.create",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+        "method": "POST",
+        "path": "/jokes/:id/vote",
+        "handler": "jokes.vote",
+        "config": {
+          "policies": []
+        }
+      },
+    {
+      "method": "PUT",
+      "path": "/jokes/:id",
+      "handler": "jokes.update",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/jokes/:id",
+      "handler": "jokes.delete",
+      "config": {
+        "policies": []
+      }
+    }
+  ]
+}
+
+
+// v3/api/jokes/controllers/jokes.js
+'use strict';
+
+const { sanitizeEntity } = require('strapi-utils');
+
+module.exports = {
+    async find(ctx) {
+      let entities;
+
+      ctx.query = {
+        ...ctx.query,
+        _limit: 20,
+        _sort:'id:DESC',
+        status: 'active',
+      };
+      
+      if (ctx.query._q) {
+        entities = await strapi.services.jokes.search(ctx.query);
+      } else {
+        entities = await strapi.services.jokes.find(ctx.query);
+      }
+
+      entities = entities.filter(elem => {
+        let visibile = true;
+
+        elem.tags.forEach(element => {
+          if(element.adult_content) {
+            visibile = false;
+            return;
+        }
+        });
+        
+        if(!visibile) return undefined;
+        else return elem;
+      })
+  
+      return entities.map(entity => sanitizeEntity(entity, { model: strapi.models.jokes }));
+    },
+
+    async findPending(ctx) {
+        let entities;
+
+        const ip_address = ctx.req.socket._peername.address;
+
+        const current_user = (ctx.state.user);
+        
+        let already_voted_ids_only = await this.getAlreadyVoted(current_user, ip_address);
+
+        // MAKE the query while id not in the array
+        ctx.query = {
+            id_nin: ctx.query?.id_nin?.concat(already_voted_ids_only),
+            _sort:'id:DESC',
+            status: 'pending',
+        };
+
+        if (ctx.query._q) {
+            entities = await strapi.services.jokes.search(ctx.query);
+          } 
+          else {
+            entities = await strapi.services.jokes.find(ctx.query);
+          }
+        
+        entities = strapi.services.globalcalls.clean_adult_content(entities,0);
+
+        // return the top one only
+        return sanitizeEntity(entities[0], { model: strapi.models.jokes });
+    },
+
+    async getAlreadyVoted(current_user, ip_address){
+      // Check if reqeuster is  not administrator , then get the list of all jokes voted on.
+      let result;
+      if(current_user?.role?.name != "Administrator"){
+        // GET WHAT USER ALREADY VOTED ON
+        let connection_string = this.getAlreadyVotedConnectionString(current_user, ip_address);
+
+        const rawBuilder = strapi.connections.default.raw(connection_string);
+        const resp = await rawBuilder.then();
+        const already_voted = resp[0];
+
+        return already_voted.map(elem => {
+            return elem.joke_id;
+        })
+      }
+    },
+
+    getAlreadyVotedConnectionString(current_user, ip_address){
+      // bare-metals knex query on the db, get user previous votes, either by IP or user ID
+      let connection_string = 'select jokes__votes.joke_id from votes left join jokes__votes on jokes__votes.vote_id = votes.id where ';
+
+      // Check the identifier
+      if(current_user) { connection_string += `author = "${current_user.id}" OR` }
+      connection_string += ` ip_address = "${ip_address} group by joke_id"`
+      return connection_string;
+    },
+
+    async findOne({ params: { id } }) {
+      const entity = await strapi.services.jokes.findOne({ id });
+      return sanitizeEntity(entity, { model: strapi.models.jokes });
+    },
+  
+    count(ctx) {
+      return ctx.query._q ? strapi.services.jokes.countSearch(ctx.query) : strapi.services.jokes.count(ctx.query);
+    },
+    
+
+    async create(ctx) {
+        // Set the user either authenticated or logged in
+        const author = ctx.state.user?.id || 88;
+        ctx.request.body.author = author;
+
+        // If Joke does not start with ygool lik
+        const { content, tags } = ctx.request.body;
+        if(!content.startsWith('يقول لك')) ctx.throw(400, 'النكتة ما تبدا ب "يقول لك"');
+        // If Joke less than 19 characters
+        if(content.length<= 19) ctx.throw(400, 'النكتة أقصر من 20 حرف, يقول لك بلحالها 9 حروف');
+        // If joke does not have category
+        if(!tags || tags.length < 1) ctx.throw(400, 'اختر عالأقل تصنيف واحد يالغالي');
+        
+        // Set IP address and status
+        ctx.request.body.ip_address = ctx.req.socket._peername.address;
+        const isAdmin = ctx.state.user?.role.name === 'Administrator';
+        ctx.request.body.status = isAdmin ? 'active' : 'pending';
+        
+        // Clean joke content and create entity
+        //ctx.request.body.content = clean_arabic(content);
+        // TODO: still need to clean arabic from tanween
+        const entity = await strapi.services.jokes.create(ctx.request.body);
+            
+        return sanitizeEntity(entity, { model: strapi.models.jokes });
+
+    },
+
+    async vote(ctx) {
+        const joke_id = ctx.params.id;
+        const ip_address = ctx.req.socket._peername.address;
+		const current_user = ctx.state.user;
+        const vote_value = ctx.request.body.data.value;
+		const joke_acceptance_threshold = 10; // now fixed in db to 10
+
+        let votes_up_count = 0;
+        let votes_down_count = 0;
+        
+		let targeted_joke_for_vote = await strapi.services.jokes.findOne({id: joke_id});
+
+        // apply the vote on the counter
+        if(vote_value =="up") votes_up_count++;
+        if(vote_value =="down") votes_down_count++;
+
+        // either add the ip address or the author to the vote record
+		ctx.request.body = {
+			...ctx.request.body,
+			author: current_user ? current_user.id : null,
+			ip_address: current_user ? null : ip_address
+		};
+        
+        // Loop through votes to see IP or user ID, Check if this user voted before, and count votes
+        for(const vote of targeted_joke_for_vote.votes){ 
+            // increment anyway, it wouldn't register to db if an error was thrown
+            if(vote.value == "up") votes_up_count++;
+            if(vote.value == "down") votes_down_count++;
+            
+            // if is admin, skip
+			//console.log('current_user',current_user)
+            if (current_user?.role?.name == 'Administrator') {
+				if(vote.author && vote.author == current_user.id) ctx.throw(400, 'Already voted, same author');
+              	continue;
+            }
+
+            // if authenticated, check vote author, if not, check IP address
+			
+            if(current_user){
+              if(vote.author && vote.author == current_user.id) ctx.throw(400, 'Already voted, same author');
+            }
+            else{
+              if(vote.ip_address == ip_address) ctx.throw(400, 'Already voted, same ip');
+            }
+        }
+        
+        let vote = await strapi.services.votes.create(ctx.request.body);
+        
+        // check against threshold and change status only if it was pending, if jokes vote count exceeds joke_acceptance_threshold, make public or delete
+        if(targeted_joke_for_vote.status == 'pending'){
+            // Force change status of joke to active or deleted for admin users
+			if(current_user?.role?.name == "Administrator"){
+				if(vote_value =="up") targeted_joke_for_vote.status = "active";
+				if(vote_value =="down") targeted_joke_for_vote.status = "deleted";
+				targeted_joke_for_vote.remarks += " ## " + `forced ${targeted_joke_for_vote.status} by administrator ${current_user.username}`;
+			}
+			else{
+				if(votes_up_count >= joke_acceptance_threshold){
+					targeted_joke_for_vote.status = "active";
+				}
+				else if(votes_down_count >= joke_acceptance_threshold){
+					targeted_joke_for_vote.status = "deleted";
+				}
+			}
+
+            // Prepare for a remarks entry update
+            targeted_joke_for_vote.remarks += " ## " + `the vote is ${vote.value}, total ups: ${votes_up_count}, total downs:  ${votes_down_count}, joke_acceptance_threshold is: ${joke_acceptance_threshold}, status should be:  ${targeted_joke_for_vote.status} at: ${Date.now()}`;
+        }
+
+        // Add to the votes to Joke with the updated status
+        let joke_that_was_subject_to_voting = await strapi.query('jokes').update({id: joke_id},{
+            "status": targeted_joke_for_vote.status, 
+            "votes":	targeted_joke_for_vote.votes.map((vote) => vote.id).concat(vote.id),
+            "remarks": targeted_joke_for_vote.remarks
+        });
+
+        // remove ip address info for response
+        joke_that_was_subject_to_voting.votes.map(elem =>{
+            delete vote.ip_address;
+        })	 	
+        
+        return sanitizeEntity(joke_that_was_subject_to_voting, { model: strapi.models.jokes });
+    },
+
+    async update(ctx) {
+      const { id } = ctx.params;
+    
+    // only edit own jokes
+    const [joke] = await strapi.services.joke.find({
+        id: ctx.params.id,
+        'author.id': ctx.state.user.id,
+    });
+
+    if (!joke) {
+        return ctx.unauthorized(`You can't update this entry`);
+    }
+        
+      // Cannot set status or author on update
+      ctx.request.body.ip_address = ctx.req.socket._peername.address;
+      // Cannot set status on update
+      delete ctx.request.body.status;
+      delete ctx.request.body.author;
+
+      let entity;
+
+        entity = await strapi.services.jokes.update({ id }, ctx.request.body);
+  
+      return sanitizeEntity(entity, { model: strapi.models.jokes });
+    },
+  
+    async delete(ctx) {
+      const { id } = ctx.params;
+  
+      const [joke] = await strapi.services.joke.find({
+        id: ctx.params.id,
+        'author.id': ctx.state.user.id,
+        });
+
+        if (!joke) {
+            return ctx.unauthorized(`You can't delete this entry`);
+        }
+        
+      const entity = await strapi.services.jokes.delete({ id });
+      return sanitizeEntity(entity, { model: strapi.models.jokes });
+    },
+  };
+
+// v3/api/jokes/models/jokes.js
+"use strict";
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
+ * to customize this model
+ */
+
+const { generate_slug } = require("../../../utilities/mfo_tools");
+
+module.exports = {
+  lifecycles: {
+    beforeCreate: async (data) => {
+      if (data.content) {
+        data.slug = generate_slug(data.content);
+      }
+    },
+    beforeUpdate: async (params, data) => {
+      if (data.content) {
+        data.slug = generate_slug(data.content);
+      }
+    },
+  },
+};
+
+
+// v3/api/jokes/models/jokes.settings.json
+{
+  "kind": "collectionType",
+  "collectionName": "jokes",
+  "info": {
+    "name": "Jokes",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "comments": {
+      "plugin": "comments",
+      "collection": "comment",
+      "via": "related"
+    },
+    "content": {
+      "type": "text",
+      "required": true,
+      "unique": false
+    },
+    "status": {
+      "type": "enumeration",
+      "enum": [
+        "active",
+        "pending",
+        "reported",
+        "deleted"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "remarks": {
+      "type": "text",
+      "private": true
+    },
+    "slug": {
+      "type": "string",
+      "required": false,
+      "unique": true
+    },
+    "tags": {
+      "collection": "tag",
+      "via": "jokes",
+      "dominant": true
+    },
+    "votes": {
+      "collection": "votes"
+    },
+    "author": {
+      "via": "jokes",
+      "plugin": "users-permissions",
+      "model": "user"
+    }
+  }
+}
+
+
+// v3/api/jokes/services/jokes.js
+'use strict';
+
+module.exports = {
+    
+};
+
+
+// v3/api/pages/config/routes.json
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/pages",
+      "handler": "pages.find",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/pages/count",
+      "handler": "pages.count",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/pages/:id",
+      "handler": "pages.findOne",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/pages",
+      "handler": "pages.create",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/pages/:id",
+      "handler": "pages.update",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/pages/:id",
+      "handler": "pages.delete",
+      "config": {
+        "policies": []
+      }
+    }
+  ]
+}
+
+
+// v3/api/pages/controllers/pages.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
+ * to customize this controller
+ */
+
+module.exports = {};
+
+
+// v3/api/pages/models/pages.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
+ * to customize this model
+ */
+
+const { generate_slug } = require("../../../utilities/mfo_tools");
+
+const slug = require('slugify');
+
+module.exports = {
+    
+    lifecycles: {
+      beforeCreate: async (data) => {    
+        if (data.title) {
+            data.slug = generate_slug(data.content);
+        }
+      },
+      beforeUpdate: async (params, data) => {
+        if (data.title) {
+            data.slug = generate_slug(data.content);
+        }
+      },
+    },
+  };
+  
+
+
+// v3/api/pages/models/pages.settings.json
+{
+  "kind": "collectionType",
+  "collectionName": "pages",
+  "info": {
+    "name": "Pages",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "comments": {
+        "plugin": "comments",
+        "collection": "comment",
+        "via": "related"
+    },
+    "title": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "slug": {
+      "type": "string",
+      "required": false
+    },
+    "votes": {
+      "collection": "votes"
+    }
+  }
+}
+
+
+// v3/api/pages/services/pages.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
+ * to customize this service
+ */
+
+module.exports = {};
+
+
+// v3/api/tag/config/routes.json
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/tags",
+      "handler": "tag.find",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/tags/count",
+      "handler": "tag.count",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/tags/:id",
+      "handler": "tag.findOne",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/tags",
+      "handler": "tag.create",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/tags/:id",
+      "handler": "tag.update",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/tags/:id",
+      "handler": "tag.delete",
+      "config": {
+        "policies": []
+      }
+    }
+  ]
+}
+
+
+// v3/api/tag/controllers/tag.js
+"use strict";
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
+ * to customize this controller
+ */
+const { sanitizeEntity } = require("strapi-utils");
+
+module.exports = {
+	async find(ctx) {
+
+		ctx.query = {
+			...ctx.query,
+			adult_content: false,
+		};
+
+		const result = await strapi.query('tag').find(ctx.query);
+		let maxJokes = 0;
+		result.forEach((tag) => {
+			if (tag.jokes.length > maxJokes) {
+			  maxJokes = tag.jokes.length;
+			}
+		
+			tag.jokes = tag.jokes.length;
+			tag.jokes_max = maxJokes;
+		  });
+
+		  return sanitizeEntity(result, { model: strapi.models.tag });
+
+		
+
+
+		if (ctx.query._q) {
+			entities = await strapi.services.tag.search(ctx.query);
+		} else {
+			entities = await strapi.services.tag.find(ctx.query);
+		}
+
+		let max = 0;
+
+		// replaces jokes result by count only under tag object
+		entities.forEach((element) => {
+			if (element.jokes.length > max) {
+				max = element.jokes.length;
+			}
+			element.jokes = element.jokes.length;
+		});
+
+		// add jokes_max number for the overall tags to every tag to help with tag font-size functionality
+		entities.forEach((element) => {
+			element.jokes_max = max;
+		});
+
+		return entities.map((entity) =>
+			sanitizeEntity(entity, { model: strapi.models.tag })
+		);
+	},
+};
+
+
+// v3/api/tag/models/tag.js
+"use strict";
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
+ * to customize this model
+ */
+
+const { generate_slug } = require("../../../utilities/mfo_tools");
+
+module.exports = {
+	lifecycles: {
+		beforeCreate: async (data) => {
+			if (data.title) {
+				data.slug = generate_slug(data.content);
+			}
+		},
+		beforeUpdate: async (params, data) => {
+			if (data.title) {
+				data.slug = generate_slug(data.content);
+			}
+		},
+	},
+};
+
+
+// v3/api/tag/models/tag.settings.json
+{
+  "kind": "collectionType",
+  "collectionName": "tags",
+  "info": {
+    "name": "Tags",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "adult_content": {
+      "type": "boolean",
+      "default": false,
+      "required": true
+    },
+    "hex_color": {
+      "type": "string"
+    },
+    "slug": {
+      "type": "string",
+      "required": true
+    },
+    "jokes": {
+      "via": "tags",
+      "collection": "jokes"
+    }
+  }
+}
+
+
+// v3/api/tag/services/tag.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
+ * to customize this service
+ */
+
+module.exports = {};
+
+
+// v3/api/votes/config/routes.json
+{
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/votes",
+      "handler": "votes.find",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/votes/count",
+      "handler": "votes.count",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/votes/:id",
+      "handler": "votes.findOne",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/votes",
+      "handler": "votes.create",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/votes/:id",
+      "handler": "votes.update",
+      "config": {
+        "policies": []
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/votes/:id",
+      "handler": "votes.delete",
+      "config": {
+        "policies": []
+      }
+    }
+  ]
+}
+
+
+// v3/api/votes/controllers/votes.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
+ * to customize this controller
+ */
+
+module.exports = {};
+
+
+// v3/api/votes/models/votes.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
+ * to customize this model
+ */
+
+module.exports = {};
+
+
+// v3/api/votes/models/votes.settings.json
+{
+  "kind": "collectionType",
+  "collectionName": "votes",
+  "info": {
+    "name": "Votes",
+    "description": ""
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true,
+    "draftAndPublish": false
+  },
+  "attributes": {
+    "ip_address": {
+      "type": "string",
+      "private": false
+    },
+    "value": {
+      "type": "enumeration",
+      "enum": [
+        "up",
+        "down",
+        "neutral"
+      ],
+      "required": true,
+      "default": "neutral"
+    },
+    "author": {
+      "via": "votes",
+      "plugin": "users-permissions",
+      "model": "user"
+    }
+  }
+}
+
+
+// v3/api/votes/services/votes.js
+'use strict';
+
+/**
+ * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
+ * to customize this service
+ */
+
+module.exports = {};
+
+
+// v3/config/custom.js
+module.exports = {
+    plugins: {
+      comments: {
+        enableUsers: false,
+        badWords: false,
+      },
+    },
+  };
+
+// v3/config/database.js
+module.exports = ({ env }) => ({
+  defaultConnection: 'default',
+  connections: {
+    default: {
+      connector: 'bookshelf',
+      settings: {
+        client: 'mysql',
+        host: env('DATABASE_HOST', 'localhost'),
+        port: env.int('DATABASE_PORT', 3306),
+        database: env('DATABASE_NAME', 'strapi'),
+        username: env('DATABASE_USERNAME', 'strapi'),
+        password: env('DATABASE_PASSWORD', 'strapi'),
+      },
+      options: {},
+    },
+  },
+});
+
+
+// v3/config/env/production/database.js
+module.exports = ({ env }) => ({
+  defaultConnection: 'default',
+  connections: {
+    default: {
+      connector: 'bookshelf',
+      settings: {
+        client: 'mysql',
+        host: env('DATABASE_HOST', 'localhost'),
+        port: env.int('DATABASE_PORT', 3306),
+        database: env('DATABASE_NAME', 'strapi'),
+        username: env('DATABASE_USERNAME', 'strapi'),
+        password: env('DATABASE_PASSWORD', 'strapi'),
+      },
+      options: {},
+    },
+  },
+});
+
+
+// v3/config/env/production/server.js
+module.exports = ({ env }) => ({
+  host: env('HOST', '0.0.0.0'),
+  port: env.int('PORT', 1337),
+  url: env('PUBLIC_URL', 'https://api.f6sny.com'),
+  admin: {
+    url: "/dashboard",
+    auth: {
+      secret: env('ADMIN_JWT_SECRET', 'someSecretKey'),
+    },
+  },
+});
+
+
+// v3/config/functions/bootstrap.js
+'use strict';
+
+/**
+ * An asynchronous bootstrap function that runs before
+ * your application gets started.
+ *
+ * This gives you an opportunity to set up your data model,
+ * run jobs, or perform some special logic.
+ *
+ * See more details here: https://strapi.io/documentation/v3.x/concepts/configurations.html#bootstrap
+ */
+
+module.exports = () => {};
+
+
+// v3/config/functions/cron.js
+'use strict';
+
+/**
+ * Cron config that gives you an opportunity
+ * to run scheduled jobs.
+ *
+ * The cron format consists of:
+ * [SECOND (optional)] [MINUTE] [HOUR] [DAY OF MONTH] [MONTH OF YEAR] [DAY OF WEEK]
+ *
+ * See more details here: https://strapi.io/documentation/v3.x/concepts/configurations.html#cron-tasks
+ */
+
+module.exports = {
+  /**
+   * Simple example.
+   * Every monday at 1am.
+   */
+  // '0 1 * * 1': () => {
+  //
+  // }
+};
+
+
+// v3/config/functions/responses/404.js
+'use strict';
+
+module.exports = async (/* ctx */) => {
+  // return ctx.notFound('My custom message 404');
+};
+
+
+// v3/config/plugins.js
+module.exports = {
+	comments: {
+		enableUsers: true,
+		badWords: false,
+		moderatorRoles: ["Authenticated"],
+        relatedContentTypes: {
+            jokes: {
+              uuid: 'application::jokes.jokes',
+              contentManager: true,
+              __contentType: '',
+              key: 'title',
+              value: 'id',
+            }
+          }
+	},
+};
+
+
+// v3/config/server.js
+module.exports = ({ env }) => ({
+  host: env('HOST', '0.0.0.0'),
+  port: env.int('PORT', 1337),
+  admin: {
+    auth: {
+      secret: env('ADMIN_JWT_SECRET', 'someSecretKey'),
+    },
+  },
+});
+
+
+// v3/docker-compose.yml
+version: '3.4'
+services:
+  api_f6sny_com:
+    build:
+      context: .
+    environment:
+      - DATABASE_HOST
+      - DATABASE_PORT
+      - DATABASE_NAME
+      - DATABASE_USERNAME
+      - DATABASE_PASSWORD
+      - DATABASE_SSL
+      - HOST
+      - PORT
+      - URL
+      - ADMIN_JWT_SECRET
+      - PUBLIC_URL
+      - STRAPI_URL
+    ports:
+      - "8010:80"
+
+// v3/Dockerfile
+# docker run -d --name f6sny-strapi -p 8010:80 --rm -it strapi-f6sny
+FROM node:14-alpine
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+COPY package.json /usr/src/app/
+ENV NODE_ENV="production"
+RUN npm install
+COPY . /usr/src/app
+RUN npm run build
+ENV PORT 80
+EXPOSE ${PORT}
+CMD [ "npm","run", "start" ]
+
+// v3/Dockerfile.prod
+FROM node:14-alpine as build
+# Installing libvips-dev for sharp Compatibility
+RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev vips-dev && rm -rf /var/cache/apk/* > /dev/null 2>&1
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+WORKDIR /opt/
+COPY ./package.json ./package-lock.json ./
+ENV PATH /opt/node_modules/.bin:$PATH
+RUN npm install --production
+WORKDIR /opt/app
+COPY ./ .
+RUN npm run build
+
+
+FROM node:14-alpine
+# Installing libvips-dev for sharp Compatibility
+RUN apk add vips-dev
+RUN rm -rf /var/cache/apk/*
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+WORKDIR /opt/app
+COPY --from=build /opt/node_modules ./node_modules
+ENV PATH /opt/node_modules/.bin:$PATH
+COPY --from=build /opt/app ./
+EXPOSE 80
+CMD ["npm", "run","start"]
+
+// v3/extensions/.gitkeep
+
+
+// v3/extensions/users-permissions/config/jwt.js
+module.exports = {
+  jwtSecret: process.env.JWT_SECRET || 'a1803bd0-d732-4687-bcdb-93be6f0bd1ba'
+};
+
+// v3/extensions/users-permissions/config/policies/userUpdate.js
+module.exports = async (ctx, next) => {
+    // If the user is an administrator we allow them to perform this action unrestricted
+    if (ctx.state.user.role.name === "Administrator") {
+      return next();
+    }
+    
+  
+    const { id: currentUserId } = ctx.state.user;
+    // If you are using MongoDB do not parse the id to an int!
+    const userToUpdate = Number.parseInt(ctx.params.id, 10);
+  
+    if (currentUserId !== userToUpdate) {
+      return ctx.unauthorized("Unable to edit this user ID");
+    }
+  
+    ctx.request.body.ip_address = ctx.req.socket._peername.address;
+    // Extract the fields regular users should be able to edit
+    const { first_name, last_name, biography, date_of_birth, gender, adult_content, ip_address } = ctx.request.body;
+  
+    console.log(ctx.request.body)
+    
+    // Provide custom validation policy here
+    //   if (first_name && first_name.trim() === "") {
+    //     return ctx.badRequest("first_name is required");
+    //   }
+  
+    // Setup the update object
+    const updateData = {
+        first_name,
+        last_name,
+        biography,
+        date_of_birth,
+        gender,
+        adult_content,
+        ip_address
+    };
+  
+    // remove properties from the update object that are undefined (not submitted by the user in the PUT request)
+    Object.keys(updateData).forEach((key) => updateData[key] === undefined && delete updateData[key]);
+    if(Object.keys(updateData).length === 0) {
+      return ctx.badRequest("No data submitted")
+    }
+  
+    ctx.request.body = updateData;
+    return next();
+  };
+  
+
+// v3/extensions/users-permissions/models/User.settings.json
+{
+  "kind": "collectionType",
+  "collectionName": "users-permissions_user",
+  "info": {
+    "name": "user",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false,
+    "timestamps": true
+  },
+  "attributes": {
+    "username": {
+      "type": "string",
+      "minLength": 3,
+      "unique": true,
+      "configurable": false,
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "minLength": 6,
+      "configurable": false,
+      "required": true
+    },
+    "provider": {
+      "type": "string",
+      "configurable": false
+    },
+    "password": {
+      "type": "password",
+      "minLength": 6,
+      "configurable": false,
+      "private": true
+    },
+    "resetPasswordToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true
+    },
+    "confirmationToken": {
+      "type": "string",
+      "configurable": false,
+      "private": true
+    },
+    "confirmed": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "blocked": {
+      "type": "boolean",
+      "default": false,
+      "configurable": false
+    },
+    "role": {
+      "model": "role",
+      "via": "users",
+      "plugin": "users-permissions",
+      "configurable": false
+    },
+    "first_name": {
+      "type": "string"
+    },
+    "last_name": {
+      "type": "string"
+    },
+    "date_of_birth": {
+      "type": "date"
+    },
+    "biography": {
+      "type": "string"
+    },
+    "gender": {
+      "type": "enumeration",
+      "enum": [
+        "male",
+        "female"
+      ],
+      "required": true,
+      "default": "male"
+    },
+    "adult_content": {
+      "type": "enumeration",
+      "enum": [
+        "show",
+        "hide"
+      ],
+      "default": "hide",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string",
+      "private": true
+    },
+    "jokes": {
+      "private": true,
+      "collection": "jokes",
+      "via": "author"
+    },
+    "display_picture": {
+      "model": "file",
+      "via": "related",
+      "allowedTypes": [
+        "images"
+      ],
+      "plugin": "upload",
+      "required": false
+    },
+    "votes": {
+      "collection": "votes",
+      "via": "author"
+    }
+  }
+}
+
+
+// v3/package.json
+{
+  "name": "js-strapi-f-6-sny-backend",
+  "private": true,
+  "version": "1.1.0",
+  "description": "A Strapi application",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "build": "strapi build",
+    "strapi": "strapi"
+  },
+  "dependencies": {
+    "knex": "0.21.18",
+    "mysql": "latest",
+    "slugify": "1.4.6",
+    "strapi": "3.6.9",
+    "strapi-admin": "3.6.9",
+    "strapi-connector-bookshelf": "3.6.9",
+    "strapi-plugin-comments": "1.0.4",
+    "strapi-plugin-content-manager": "3.6.9",
+    "strapi-plugin-content-type-builder": "3.6.9",
+    "strapi-plugin-email": "3.6.9",
+    "strapi-plugin-entity-relationship-chart": "3.1.0",
+    "strapi-plugin-meilisearch": "0.5.1",
+    "strapi-plugin-upload": "3.6.9",
+    "strapi-plugin-users-permissions": "3.6.9",
+    "strapi-utils": "3.6.9"
+  },
+  "author": {
+    "name": "Mohannad F. Otaibi"
+  },
+  "strapi": {
+    "uuid": "8524a2b0-1efd-4ec1-a733-13c3fdd510a7"
+  },
+  "engines": {
+    "node": ">=10.16.0 <=14.x.x",
+    "npm": ">=6.0.0"
+  },
+  "license": "MIT"
+}
+
+
+// v3/utilities/mfo_tools.js
+// entire file can be moved to globalcalls
+
+const clean_adult_content = (jokes_array,adult_selection) => {
+    if(!adult_selection){
+        jokes_array = jokes_array.filter(elem => {
+            let visibile = true;
+    
+			elem.tags.forEach(element => {
+				if(element.adult_content) {
+                    visibile = false;
+                    return;
+                }
+			});
+                  
+            if(!visibile) return undefined;
+            else return elem;
+          })
+    }
+    return jokes_array;
+};
+
+async function filter_array(arr, callback) {
+	const fail = Symbol()
+	return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i=>i!==fail)
+}
+
+const slug = require('slugify');
+
+const strip_tags_and_new_lines = (text) => {
+  if (!text) return false;
+  text = text.toString();
+  return text.replace(/<\/?[^>]+>|[\r\n]/g, '');
+};
+
+const shorten = (text, maxLen, separator = ' ') => {
+  if (text.length <= maxLen) return str;
+  if (typeof separator !== 'string' || separator.length === 0) {
+      throw new Error('Invalid separator argument: must be a non-empty string');
+  }
+  return text.substr(0, text.lastIndexOf(separator, maxLen));
+};
+
+const allowed_characters_regex = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
+
+const generate_slug = (text) =>{
+  slug = strip_tags_and_new_lines(text);
+  slug = slug.replace(/ +(?= )/g,'');
+  slug = slug.trim();
+  slug = slug.replace("يقول لك","");
+  slug = slug.replace(allowed_characters_regex, "");
+  slug = slug.trim();
+  slug = shorten(slug, 50).trim().replace(/[" "]/g, "-");
+  return slug
+};
+
+module.exports = { generate_slug, clean_adult_content, filter_array };

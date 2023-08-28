@@ -15,10 +15,12 @@ function shorten(text, maxLen, separator = ' ') {
     return text.substr(0, text.lastIndexOf(separator, maxLen));
 }
 
-
 export default {
 
     clean_adult_content(jokes_array, adult_selection) {
+        console.log("clean_adult_content", adult_selection)
+        console.log(jokes_array)
+
         if (!adult_selection) {
             jokes_array = jokes_array.filter(elem => {
                 let visibile = true;
