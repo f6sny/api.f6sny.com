@@ -33,4 +33,4 @@ The things that we tracked can be found in our [CHANGELOG](./CHANGELOG.md), migh
 
 ## ✍🏻 Contribution
 
-You're always welcome to contribute however you want by creating an [issue](./issues).
+You're always welcome to contribute however you want by creating an [issue](https://github.com/f6sny/api.f6sny.com/issues).
