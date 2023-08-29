@@ -1,4 +1,8 @@
-export default {
+import { factories } from '@strapi/strapi'; 
+import { Context } from "koa";
+
+export default factories.createCoreService('api::restaurant.restaurant', ({ strapi }) =>  ({
+    
     async isAdultJoke(joke_id: number){
         // get the joke object
         let is_adult_joke = false;
@@ -14,7 +18,7 @@ export default {
     },
 
     
-    generate_slug(text) {
+    generate_slug(text: string) {
         const ALLOWED_CHARACTERS_REGEX = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
         const TAGS_REGEX = /<\/?[^>]+>|[\r\n]/g;
         const SOME_REGEX = / +(?= )/g;
@@ -52,4 +56,5 @@ export default {
         }
         return jokes_array;
     }
-}
+
+}));

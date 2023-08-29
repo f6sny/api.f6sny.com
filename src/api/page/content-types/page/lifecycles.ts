@@ -3,7 +3,7 @@ export default {
       const { data } = event.params;
 
       if (data.title) {
-        data.slug = strapi.service("API::globalcall.globalcall").generate_slug(data.title);
+        data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.title);
       }
 
     },
@@ -11,7 +11,7 @@ export default {
     beforeUpdate(event) {
         const { data } = event.params;
         if (data.title) {
-            data.slug = strapi.service("API::globalcall.globalcall").generate_slug(data.title);
+            data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.title);
           }
     },
   };

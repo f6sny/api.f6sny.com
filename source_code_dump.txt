@@ -17,15 +17,6 @@ indent_size = 4
 trim_trailing_whitespace = false
 
 
-// .env.example
-HOST=0.0.0.0
-PORT=1337
-APP_KEYS="toBeModified1,toBeModified2"
-API_TOKEN_SALT=tobemodified
-ADMIN_JWT_SECRET=tobemodified
-JWT_SECRET=tobemodified
-
-
 // .github/workflows/deploy-image.yml
 name: Create and publish a Docker image
 
@@ -94,6 +85,7 @@ export default ({ env }) => ({
       salt: env('TRANSFER_TOKEN_SALT'),
     },
   },
+  url: "/dashboard"
 });
 
 
@@ -231,7 +223,65 @@ export default ({ env }) => ({
 });
 
 
-// database/migrations/.gitkeep
+// config/typescript.ts
+export default ({ env }) => ({
+    autogenerate: true,
+});
+
+// docker-compose.yml
+version: '3.4'
+services:
+  api:
+    build:
+      context: .
+    environment:
+      - DATABASE_HOST
+      - DATABASE_PORT
+      - DATABASE_NAME
+      - DATABASE_USERNAME
+      - DATABASE_PASSWORD
+      - DATABASE_SSL
+      - HOST
+      - PORT
+      - URL
+      - ADMIN_JWT_SECRET
+      - PUBLIC_URL
+      - STRAPI_URL
+    ports:
+      - "8010:80"
+
+// Dockerfile
+# Creating multi-stage build for production
+FROM node:18-alpine as build
+RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev vips-dev > /dev/null 2>&1
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
+WORKDIR /opt/
+COPY package.json package-lock.json ./
+RUN npm config set fetch-retry-maxtimeout 600000 -g && npm install --only=production
+ENV PATH /opt/node_modules/.bin:$PATH
+WORKDIR /opt/app
+COPY . .
+RUN npm run build
+
+# Creating final production image
+FROM node:18-alpine
+RUN apk add --no-cache vips-dev
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+WORKDIR /opt/
+COPY --from=build /opt/node_modules ./node_modules
+WORKDIR /opt/app
+COPY --from=build /opt/app ./
+ENV PATH /opt/node_modules/.bin:$PATH
+
+RUN chown -R node:node /opt/app
+USER node
+EXPOSE 1337
+CMD ["npm", "run", "start"]
+
+
 
 
 // package.json
@@ -279,6 +329,1001 @@ export default ({ env }) => ({
 
 
 // public/uploads/.gitkeep
+
+
+// schemas.d.ts
+import {
+  CollectionTypeSchema,
+  StringAttribute,
+  RequiredAttribute,
+  SetMinMaxLength,
+  JSONAttribute,
+  DefaultTo,
+  RelationAttribute,
+  DateTimeAttribute,
+  PrivateAttribute,
+  EmailAttribute,
+  UniqueAttribute,
+  PasswordAttribute,
+  BooleanAttribute,
+  EnumerationAttribute,
+  BigIntegerAttribute,
+  IntegerAttribute,
+  DecimalAttribute,
+  SetMinMax,
+  DateAttribute,
+  TextAttribute,
+  RichTextAttribute,
+} from '@strapi/strapi';
+
+export interface AdminPermission extends CollectionTypeSchema {
+  info: {
+    name: 'Permission';
+    description: '';
+    singularName: 'permission';
+    pluralName: 'permissions';
+    displayName: 'Permission';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    action: StringAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    subject: StringAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    properties: JSONAttribute & DefaultTo<{}>;
+    conditions: JSONAttribute & DefaultTo<[]>;
+    role: RelationAttribute<'admin::permission', 'manyToOne', 'admin::role'>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'admin::permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'admin::permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface AdminUser extends CollectionTypeSchema {
+  info: {
+    name: 'User';
+    description: '';
+    singularName: 'user';
+    pluralName: 'users';
+    displayName: 'User';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    firstname: StringAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    lastname: StringAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    username: StringAttribute;
+    email: EmailAttribute &
+      RequiredAttribute &
+      PrivateAttribute &
+      UniqueAttribute &
+      SetMinMaxLength<{
+        minLength: 6;
+      }>;
+    password: PasswordAttribute &
+      PrivateAttribute &
+      SetMinMaxLength<{
+        minLength: 6;
+      }>;
+    resetPasswordToken: StringAttribute & PrivateAttribute;
+    registrationToken: StringAttribute & PrivateAttribute;
+    isActive: BooleanAttribute & PrivateAttribute & DefaultTo<false>;
+    roles: RelationAttribute<'admin::user', 'manyToMany', 'admin::role'> &
+      PrivateAttribute;
+    blocked: BooleanAttribute & PrivateAttribute & DefaultTo<false>;
+    preferedLanguage: StringAttribute;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<'admin::user', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<'admin::user', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+  };
+}
+
+export interface AdminRole extends CollectionTypeSchema {
+  info: {
+    name: 'Role';
+    description: '';
+    singularName: 'role';
+    pluralName: 'roles';
+    displayName: 'Role';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute &
+      RequiredAttribute &
+      UniqueAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    code: StringAttribute &
+      RequiredAttribute &
+      UniqueAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    description: StringAttribute;
+    users: RelationAttribute<'admin::role', 'manyToMany', 'admin::user'>;
+    permissions: RelationAttribute<
+      'admin::role',
+      'oneToMany',
+      'admin::permission'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<'admin::role', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<'admin::role', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+  };
+}
+
+export interface AdminApiToken extends CollectionTypeSchema {
+  info: {
+    name: 'Api Token';
+    singularName: 'api-token';
+    pluralName: 'api-tokens';
+    displayName: 'Api Token';
+    description: '';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute &
+      RequiredAttribute &
+      UniqueAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    description: StringAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }> &
+      DefaultTo<''>;
+    type: EnumerationAttribute<['read-only', 'full-access', 'custom']> &
+      RequiredAttribute &
+      DefaultTo<'read-only'>;
+    accessKey: StringAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    lastUsedAt: DateTimeAttribute;
+    permissions: RelationAttribute<
+      'admin::api-token',
+      'oneToMany',
+      'admin::api-token-permission'
+    >;
+    expiresAt: DateTimeAttribute;
+    lifespan: BigIntegerAttribute;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'admin::api-token',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'admin::api-token',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface AdminApiTokenPermission extends CollectionTypeSchema {
+  info: {
+    name: 'API Token Permission';
+    description: '';
+    singularName: 'api-token-permission';
+    pluralName: 'api-token-permissions';
+    displayName: 'API Token Permission';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    action: StringAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    token: RelationAttribute<
+      'admin::api-token-permission',
+      'manyToOne',
+      'admin::api-token'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'admin::api-token-permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'admin::api-token-permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface AdminTransferToken extends CollectionTypeSchema {
+  info: {
+    name: 'Transfer Token';
+    singularName: 'transfer-token';
+    pluralName: 'transfer-tokens';
+    displayName: 'Transfer Token';
+    description: '';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute &
+      RequiredAttribute &
+      UniqueAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    description: StringAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }> &
+      DefaultTo<''>;
+    accessKey: StringAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    lastUsedAt: DateTimeAttribute;
+    permissions: RelationAttribute<
+      'admin::transfer-token',
+      'oneToMany',
+      'admin::transfer-token-permission'
+    >;
+    expiresAt: DateTimeAttribute;
+    lifespan: BigIntegerAttribute;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'admin::transfer-token',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'admin::transfer-token',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface AdminTransferTokenPermission extends CollectionTypeSchema {
+  info: {
+    name: 'Transfer Token Permission';
+    description: '';
+    singularName: 'transfer-token-permission';
+    pluralName: 'transfer-token-permissions';
+    displayName: 'Transfer Token Permission';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    action: StringAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 1;
+      }>;
+    token: RelationAttribute<
+      'admin::transfer-token-permission',
+      'manyToOne',
+      'admin::transfer-token'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'admin::transfer-token-permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'admin::transfer-token-permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginUploadFile extends CollectionTypeSchema {
+  info: {
+    singularName: 'file';
+    pluralName: 'files';
+    displayName: 'File';
+    description: '';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute & RequiredAttribute;
+    alternativeText: StringAttribute;
+    caption: StringAttribute;
+    width: IntegerAttribute;
+    height: IntegerAttribute;
+    formats: JSONAttribute;
+    hash: StringAttribute & RequiredAttribute;
+    ext: StringAttribute;
+    mime: StringAttribute & RequiredAttribute;
+    size: DecimalAttribute & RequiredAttribute;
+    url: StringAttribute & RequiredAttribute;
+    previewUrl: StringAttribute;
+    provider: StringAttribute & RequiredAttribute;
+    provider_metadata: JSONAttribute;
+    related: RelationAttribute<'plugin::upload.file', 'morphToMany'>;
+    folder: RelationAttribute<
+      'plugin::upload.file',
+      'manyToOne',
+      'plugin::upload.folder'
+    > &
+      PrivateAttribute;
+    folderPath: StringAttribute &
+      RequiredAttribute &
+      PrivateAttribute &
+      SetMinMax<{
+        min: 1;
+      }>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::upload.file',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::upload.file',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginUploadFolder extends CollectionTypeSchema {
+  info: {
+    singularName: 'folder';
+    pluralName: 'folders';
+    displayName: 'Folder';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute &
+      RequiredAttribute &
+      SetMinMax<{
+        min: 1;
+      }>;
+    pathId: IntegerAttribute & RequiredAttribute & UniqueAttribute;
+    parent: RelationAttribute<
+      'plugin::upload.folder',
+      'manyToOne',
+      'plugin::upload.folder'
+    >;
+    children: RelationAttribute<
+      'plugin::upload.folder',
+      'oneToMany',
+      'plugin::upload.folder'
+    >;
+    files: RelationAttribute<
+      'plugin::upload.folder',
+      'oneToMany',
+      'plugin::upload.file'
+    >;
+    path: StringAttribute &
+      RequiredAttribute &
+      SetMinMax<{
+        min: 1;
+      }>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::upload.folder',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::upload.folder',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginI18NLocale extends CollectionTypeSchema {
+  info: {
+    singularName: 'locale';
+    pluralName: 'locales';
+    collectionName: 'locales';
+    displayName: 'Locale';
+    description: '';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute &
+      SetMinMax<{
+        min: 1;
+        max: 50;
+      }>;
+    code: StringAttribute & UniqueAttribute;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::i18n.locale',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::i18n.locale',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginUsersPermissionsPermission extends CollectionTypeSchema {
+  info: {
+    name: 'permission';
+    description: '';
+    singularName: 'permission';
+    pluralName: 'permissions';
+    displayName: 'Permission';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    action: StringAttribute & RequiredAttribute;
+    role: RelationAttribute<
+      'plugin::users-permissions.permission',
+      'manyToOne',
+      'plugin::users-permissions.role'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::users-permissions.permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::users-permissions.permission',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginUsersPermissionsRole extends CollectionTypeSchema {
+  info: {
+    name: 'role';
+    description: '';
+    singularName: 'role';
+    pluralName: 'roles';
+    displayName: 'Role';
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    name: StringAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 3;
+      }>;
+    description: StringAttribute;
+    type: StringAttribute & UniqueAttribute;
+    permissions: RelationAttribute<
+      'plugin::users-permissions.role',
+      'oneToMany',
+      'plugin::users-permissions.permission'
+    >;
+    users: RelationAttribute<
+      'plugin::users-permissions.role',
+      'oneToMany',
+      'plugin::users-permissions.user'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::users-permissions.role',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::users-permissions.role',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginUsersPermissionsUser extends CollectionTypeSchema {
+  info: {
+    name: 'user';
+    description: '';
+    singularName: 'user';
+    pluralName: 'users';
+    displayName: 'User';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    username: StringAttribute &
+      RequiredAttribute &
+      UniqueAttribute &
+      SetMinMaxLength<{
+        minLength: 3;
+      }>;
+    email: EmailAttribute &
+      RequiredAttribute &
+      SetMinMaxLength<{
+        minLength: 6;
+      }>;
+    provider: StringAttribute;
+    password: PasswordAttribute &
+      PrivateAttribute &
+      SetMinMaxLength<{
+        minLength: 6;
+      }>;
+    resetPasswordToken: StringAttribute & PrivateAttribute;
+    confirmationToken: StringAttribute & PrivateAttribute;
+    confirmed: BooleanAttribute & DefaultTo<false>;
+    blocked: BooleanAttribute & DefaultTo<false>;
+    role: RelationAttribute<
+      'plugin::users-permissions.user',
+      'manyToOne',
+      'plugin::users-permissions.role'
+    >;
+    first_name: StringAttribute;
+    last_name: StringAttribute;
+    date_of_birth: DateAttribute;
+    biography: StringAttribute;
+    safe_content_preference: EnumerationAttribute<
+      ['strict', 'moderate', 'open']
+    > &
+      RequiredAttribute &
+      DefaultTo<'moderate'>;
+    ip_address: StringAttribute;
+    gender: EnumerationAttribute<['male', 'female']> &
+      RequiredAttribute &
+      DefaultTo<'male'>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::users-permissions.user',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::users-permissions.user',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginCommentsComment extends CollectionTypeSchema {
+  info: {
+    tableName: 'plugin-comments-comments';
+    singularName: 'comment';
+    pluralName: 'comments';
+    displayName: 'Comment';
+    description: 'Comment content type';
+    kind: 'collectionType';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    content: TextAttribute & RequiredAttribute;
+    blocked: BooleanAttribute & DefaultTo<false>;
+    blockedThread: BooleanAttribute & DefaultTo<false>;
+    blockReason: StringAttribute;
+    authorUser: RelationAttribute<
+      'plugin::comments.comment',
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    authorId: StringAttribute;
+    authorName: StringAttribute;
+    authorEmail: EmailAttribute;
+    authorAvatar: StringAttribute;
+    isAdminComment: BooleanAttribute;
+    removed: BooleanAttribute;
+    approvalStatus: StringAttribute;
+    related: StringAttribute;
+    reports: RelationAttribute<
+      'plugin::comments.comment',
+      'oneToMany',
+      'plugin::comments.comment-report'
+    >;
+    threadOf: RelationAttribute<
+      'plugin::comments.comment',
+      'oneToOne',
+      'plugin::comments.comment'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::comments.comment',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::comments.comment',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginCommentsCommentReport extends CollectionTypeSchema {
+  info: {
+    tableName: 'plugin-comments-reports';
+    singularName: 'comment-report';
+    pluralName: 'comment-reports';
+    displayName: 'Reports';
+    description: 'Reports content type';
+    kind: 'collectionType';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  pluginOptions: {
+    'content-manager': {
+      visible: false;
+    };
+    'content-type-builder': {
+      visible: false;
+    };
+  };
+  attributes: {
+    content: TextAttribute;
+    reason: EnumerationAttribute<['BAD_LANGUAGE', 'DISCRIMINATION', 'OTHER']> &
+      RequiredAttribute &
+      DefaultTo<'OTHER'>;
+    resolved: BooleanAttribute & DefaultTo<false>;
+    related: RelationAttribute<
+      'plugin::comments.comment-report',
+      'manyToOne',
+      'plugin::comments.comment'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::comments.comment-report',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::comments.comment-report',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface PluginPasswordlessToken extends CollectionTypeSchema {
+  info: {
+    singularName: 'token';
+    pluralName: 'tokens';
+    displayName: 'Token';
+    name: 'token';
+  };
+  options: {
+    increments: false;
+    timestamps: true;
+    draftAndPublish: false;
+  };
+  attributes: {
+    email: EmailAttribute & RequiredAttribute & PrivateAttribute;
+    body: StringAttribute &
+      RequiredAttribute &
+      PrivateAttribute &
+      UniqueAttribute;
+    context: JSONAttribute & PrivateAttribute;
+    login_date: DateTimeAttribute;
+    is_active: BooleanAttribute & DefaultTo<true>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<
+      'plugin::passwordless.token',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<
+      'plugin::passwordless.token',
+      'oneToOne',
+      'admin::user'
+    > &
+      PrivateAttribute;
+  };
+}
+
+export interface ApiJokeJoke extends CollectionTypeSchema {
+  info: {
+    singularName: 'joke';
+    pluralName: 'jokes';
+    displayName: 'Joke';
+    description: '';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    content: TextAttribute & RequiredAttribute;
+    status: EnumerationAttribute<['active', 'pending', 'reported', 'deleted']> &
+      RequiredAttribute &
+      DefaultTo<'pending'>;
+    slug: StringAttribute & UniqueAttribute;
+    remarks: TextAttribute & PrivateAttribute;
+    tags: RelationAttribute<'api::joke.joke', 'manyToMany', 'api::tag.tag'>;
+    votes: RelationAttribute<'api::joke.joke', 'oneToMany', 'api::vote.vote'>;
+    author: RelationAttribute<
+      'api::joke.joke',
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<'api::joke.joke', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<'api::joke.joke', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+  };
+}
+
+export interface ApiPagePage extends CollectionTypeSchema {
+  info: {
+    singularName: 'page';
+    pluralName: 'pages';
+    displayName: 'Page';
+    description: '';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    title: StringAttribute & RequiredAttribute & UniqueAttribute;
+    content: RichTextAttribute & RequiredAttribute;
+    slug: StringAttribute & RequiredAttribute;
+    votes: RelationAttribute<'api::page.page', 'oneToMany', 'api::vote.vote'>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<'api::page.page', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<'api::page.page', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+  };
+}
+
+export interface ApiTagTag extends CollectionTypeSchema {
+  info: {
+    singularName: 'tag';
+    pluralName: 'tags';
+    displayName: 'Tag';
+    description: '';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    title: StringAttribute & RequiredAttribute & UniqueAttribute;
+    description: StringAttribute;
+    hex_color: StringAttribute &
+      SetMinMaxLength<{
+        minLength: 7;
+        maxLength: 7;
+      }>;
+    slug: StringAttribute & RequiredAttribute & UniqueAttribute;
+    jokes: RelationAttribute<'api::tag.tag', 'manyToMany', 'api::joke.joke'>;
+    safe_content_preference: EnumerationAttribute<
+      ['strict', 'moderate', 'open']
+    > &
+      DefaultTo<'moderate'>;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<'api::tag.tag', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<'api::tag.tag', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+  };
+}
+
+export interface ApiVoteVote extends CollectionTypeSchema {
+  info: {
+    singularName: 'vote';
+    pluralName: 'votes';
+    displayName: 'Vote';
+    description: '';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    value: EnumerationAttribute<['up', 'down', 'neutral']> &
+      RequiredAttribute &
+      DefaultTo<'neutral'>;
+    ip_address: StringAttribute;
+    author: RelationAttribute<
+      'api::vote.vote',
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    createdAt: DateTimeAttribute;
+    updatedAt: DateTimeAttribute;
+    createdBy: RelationAttribute<'api::vote.vote', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+    updatedBy: RelationAttribute<'api::vote.vote', 'oneToOne', 'admin::user'> &
+      PrivateAttribute;
+  };
+}
+
+declare global {
+  namespace Strapi {
+    interface Schemas {
+      'admin::permission': AdminPermission;
+      'admin::user': AdminUser;
+      'admin::role': AdminRole;
+      'admin::api-token': AdminApiToken;
+      'admin::api-token-permission': AdminApiTokenPermission;
+      'admin::transfer-token': AdminTransferToken;
+      'admin::transfer-token-permission': AdminTransferTokenPermission;
+      'plugin::upload.file': PluginUploadFile;
+      'plugin::upload.folder': PluginUploadFolder;
+      'plugin::i18n.locale': PluginI18NLocale;
+      'plugin::users-permissions.permission': PluginUsersPermissionsPermission;
+      'plugin::users-permissions.role': PluginUsersPermissionsRole;
+      'plugin::users-permissions.user': PluginUsersPermissionsUser;
+      'plugin::comments.comment': PluginCommentsComment;
+      'plugin::comments.comment-report': PluginCommentsCommentReport;
+      'plugin::passwordless.token': PluginPasswordlessToken;
+      'api::joke.joke': ApiJokeJoke;
+      'api::page.page': ApiPagePage;
+      'api::tag.tag': ApiTagTag;
+      'api::vote.vote': ApiVoteVote;
+    }
+  }
+}
 
 
 // src/admin/app.example.tsx
@@ -351,28 +1396,34 @@ module.exports = (config, webpack) => {
 
 
 // src/api/globalcall/controllers/globalcall.ts
-const { filter_array } = require('../../../utilities/mfo_tools')
+import { factories } from '@strapi/strapi';
+import { Context } from "koa";
 
-export default {
-    async getCounters(ctx) {
-		const counters = {
-			total_jokes: 	await strapi.query('api::joke.joke').count({...ctx.query}),
-			deleted_jokes: 	await strapi.query('api::joke.joke').count({status: 'deleted'}),
-			comments: 		await strapi.query('plugin::comments.comment').count({...ctx.query}),
-			users: 			await strapi.query('plugin::users-permissions.user').count({...ctx.query}),
-			pending_jokes: 	await strapi.service('api::joke.joke').countPending(ctx),
-			//members: await strapi. strapi.services.users.count({...ctx.query}),
-			visits: 0,
+export default factories.createCoreController('api::globalcall.globalcall', ({ strapi }) =>  ({
+	async getCounters(ctx: Context) {
+		try {
+			const counters = {
+				total_jokes: 	await strapi.query('api::joke.joke').count({...ctx.query}),
+				deleted_jokes: 	await strapi.query('api::joke.joke').count({status: 'deleted'}),
+				comments: 		await strapi.query('plugin::comments.comment').count({...ctx.query}),
+				users: 			await strapi.query('plugin::users-permissions.user').count({...ctx.query}),
+				pending_jokes: 	await strapi.service('api::joke.joke').countPending(ctx),
+				//members: await strapi. strapi.services.users.count({...ctx.query}),
+				visits: 0,
+			}
+			return counters;
+		} catch (error) {
+			ctx.body = error;
 		}
-		return counters;
 	},
 
-	async getLatestComments(ctx) {
-		let entities;
+	async getLatestComments(ctx: Context) {
+		try {
+			let entities;
 		ctx.query = {
 			...ctx.query,
-			_limit: 30,
-			_sort: "id:DESC",		
+			limit: '30',
+			sort: 'id:desc' ,		
 			// TODO: add one for status later, to filter out blocked or not active comments
 			};
 
@@ -383,30 +1434,32 @@ export default {
 		}
 
 		// remove deleted jokes and adult content
-		entities = await filter_array(entities, async element => {
-			let keep = true;
-			if(element.related[0].status == 'deleted'){
-				keep = false;
+		// Get an array of promises based on your conditions
+		const results = await Promise.all(entities.map(async element => {
+			if (element.related[0].status === 'deleted') {
+			return false;
 			}
 			
-			let is_adult_joke = await strapi.service('api::globalcall.globalcall').isAdultJoke(element.related[0].id);
-			if(is_adult_joke){
-				console.log("is adult")
-				keep = false;
-			}
-
-			return keep;
-		})
-
+			const is_adult_joke = await strapi.service('api::globalcall.globalcall').isAdultJoke(element.related[0].id);
+			return !is_adult_joke;
+		}));
+		
+		// Filter the original array based on the resolved promises
+		entities = entities.filter((_, index) => results[index]);
+  
 		//console.log(entities[0])
 		return entities.slice(0,10);
-
+		} catch (error) {
+			
+		}
 	},
   
-	async updateProfile(ctx){
+	async updateProfile(ctx: Context){
 		return;
 	}
-}
+}));
+
+
 
 // src/api/globalcall/routes/globalcall.ts
 export default {
@@ -425,8 +1478,12 @@ export default {
 }
 
 // src/api/globalcall/services/globalcall.ts
-export default {
-    async isAdultJoke(joke_id){
+import { factories } from '@strapi/strapi'; 
+import { Context } from "koa";
+
+export default factories.createCoreService('api::restaurant.restaurant', ({ strapi }) =>  ({
+    
+    async isAdultJoke(joke_id: number){
         // get the joke object
         let is_adult_joke = false;
         let joke = await strapi.services.jokes.findOne({id: joke_id});
@@ -440,15 +1497,32 @@ export default {
         return is_adult_joke;
     },
 
-    clean_arabic(string){
-        return;
+    
+    generate_slug(text: string) {
+        const ALLOWED_CHARACTERS_REGEX = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
+        const TAGS_REGEX = /<\/?[^>]+>|[\r\n]/g;
+        const SOME_REGEX = / +(?= )/g;
+        const strip_tags_and_new_lines = (text) => {
+            return text?.toString().replace(TAGS_REGEX, '') || false;
+        }
+        const shorten = (text, maxLen, separator = ' ') => {
+            if (text.length <= maxLen) return text;
+            if (!separator) throw new Error('Invalid separator: must be a non-empty string');
+            return text.substr(0, text.lastIndexOf(separator, maxLen));
+        }
+
+        text = strip_tags_and_new_lines(text) || '';
+        text = text.replace(SOME_REGEX, '').trim();
+        text = text.replace("يقول لك", "").replace(ALLOWED_CHARACTERS_REGEX, "").trim();
+        return shorten(text, 50).trim().replace(/ /g, "-");
     },
 
-    clean_adult_content(jokes_array,adult_selection) {
+    clean_adult_content(jokes_array : any[], adult_selection : boolean) {
+     
         if(!adult_selection){
             jokes_array = jokes_array.filter(element => {
                 let visibile = true;
-
+                console.log(element);
                 element.tags.forEach(tag => {
                     if(tag.adult_content) {
                         visibile = false;
@@ -462,7 +1536,29 @@ export default {
         }
         return jokes_array;
     }
-}
+
+}));
+
+// src/api/joke/content-types/joke/lifecycles.ts
+export default {
+    beforeCreate(event) {
+      const { data, where, select, populate } = event.params;
+
+      if (data.content) {
+        data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.content);
+      }
+
+    },
+  
+    beforeUpdate(event) {
+        const { data, where, select, populate } = event.params;
+        if (data.content) {
+            data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.content);
+          }
+    },
+  };
+  
+  
 
 // src/api/joke/content-types/joke/schema.json
 {
@@ -528,41 +1624,24 @@ export default {
  */
 
 import { factories } from '@strapi/strapi'
-
-// const { createCoreController } = require('@strapi/strapi').factories;
-// module.exports = createCoreController('api::joke.joke', ({ strapi }) => ({
-//     async find(ctx) {
-//       // Calling the default core action
-//       const { data, meta } = await super.find(ctx);
-//       const query = strapi.db.query('api::joke.joke');
-//       await Promise.all(
-//         data.map(async (item, index) => {
-//           const foundItem = await query.findOne({
-//             where: {
-//               id: item.id,
-//             },
-//             populate: ['createdBy', 'updatedBy'],
-//           });
-          
-//           data[index].attributes.createdBy = {
-//             id: foundItem.createdBy.id,
-//             firstname: foundItem.createdBy.firstname,
-//             lastname: foundItem.createdBy.lastname,
-//           };
-//           data[index].attributes.updatedBy = {
-//             id: foundItem.updatedBy.id,
-//             firstname: foundItem.updatedBy.firstname,
-//             lastname: foundItem.updatedBy.lastname,
-//           };
-//         })
-//       );
-//       return { data, meta };
-//     },
-//   }));
-  
-
+import { Context } from "koa";
 
 export default factories.createCoreController('api::joke.joke', {
+    async find(ctx: Context) {
+        const limit = parseInt(Array.isArray(ctx.query.limit) ? ctx.query.limit[0] : ctx.query.limit) || strapi.config.get('api.rest.defaultLimit', 25);
+        const start = parseInt(Array.isArray(ctx.query.start) ? ctx.query.start[0] : ctx.query.start) || 0;
+    
+        const entities = await strapi.entityService.findMany('api::joke.joke', { ...ctx.query, limit, start, populate: ['votes', 'tags'],});
+
+        return entities;
+      },
+    
+      async findOne(ctx: Context) {
+        const { id } = ctx.params;
+        const entity = await strapi.entityService.findOne('api::joke.joke', { where: { id }, populate: ['votes', 'tags'], });
+        return entity;
+      },
+    
     count(ctx) {
         var { query } = ctx.request
         return strapi.query('api::joke.joke').count({ where: query });
@@ -571,1339 +1650,7 @@ export default factories.createCoreController('api::joke.joke', {
 
 
 
-// src/api/joke/routes/joke.ts
-/**
- * joke router
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreRouter('api::joke.joke');
-
-
-// src/api/joke/services/joke.ts
-/**
- * joke service
- */
-
-import { factories } from '@strapi/strapi';
-import { Context } from "koa";
-
-export default factories.createCoreService('api::joke.joke', {
-    async getAlreadyVoted(request_user, ip_address){
-      console.log("getAlreadyVoted", request_user, ip_address)
-        // Check if reqeuster is  not administrator , then get the list of all jokes voted on.
-        let result;
-        if(request_user?.role?.name != "Administrator"){
-          // GET WHAT USER ALREADY VOTED ON
-          let connection_string = this.getAlreadyVotedConnectionString(request_user, ip_address);
-  
-          const rawBuilder = strapi.db.connection.raw(connection_string);
-          const resp = await rawBuilder.then();
-          const already_voted = resp[0];
-  
-          return already_voted.map(elem => {
-              return elem.joke_id;
-          })
-        }
-      },
-  
-      getAlreadyVotedConnectionString(request_user, ip_address){
-        // native db query  to get user previous votes, either by IP or user ID
-        let connection_string = `
-          select jokes_votes_links.joke_id 
-          from votes 
-          left join jokes_votes_links on jokes_votes_links.vote_id = votes.id
-          left join jokes_author_links on jokes_author_links.joke_id = jokes_votes_links.joke_id
-          
-          where `;
-  
-        // Check the identifier
-        if(request_user) { connection_string += `author = "${request_user.id}" OR` }
-        connection_string += ` ip_address = "${ip_address} group by joke_id"`
-        return connection_string;
-      },
-  
-      async countPending(ctx : Context) {
-        const ipAddress = ctx.req.socket.remoteAddress || ctx.request.socket.remoteAddress //ctx.req.socket._peername.address;
-        const { isAuthenticated, user } = ctx.state // check if authenticated request or not, might be useful in another file
-        const alreadyVotedIds = await this.getAlreadyVoted({ user, ipAddress });
-      
-        const query = {
-          id_nin: alreadyVotedIds,
-          _sort: 'id:DESC',
-          status: 'pending',
-        };
-      
-        const entities = ctx.query._q ? await strapi.services.jokes.search(query) : await strapi.services.jokes.find(query);
-      
-        const cleanedEntities = strapi.services.globalcalls.clean_adult_content(entities, 0);
-      
-        return cleanedEntities.length;
-      }
-});
-
-
-// src/api/page/content-types/page/schema.json
-{
-  "kind": "collectionType",
-  "collectionName": "pages",
-  "info": {
-    "singularName": "page",
-    "pluralName": "pages",
-    "displayName": "Page",
-    "description": ""
-  },
-  "options": {
-    "draftAndPublish": false
-  },
-  "pluginOptions": {},
-  "attributes": {
-    "title": {
-      "type": "string",
-      "unique": true,
-      "required": true
-    },
-    "content": {
-      "type": "richtext",
-      "required": true
-    },
-    "slug": {
-      "type": "string",
-      "required": true
-    },
-    "votes": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::vote.vote"
-    }
-  }
-}
-
-
-// src/api/page/controllers/page.ts
-/**
- * page controller
- */
-
-import { factories } from '@strapi/strapi'
-
-export default factories.createCoreController('api::page.page');
-
-
-// src/api/page/routes/page.ts
-/**
- * page router
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreRouter('api::page.page');
-
-
-// src/api/page/services/page.ts
-/**
- * page service
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreService('api::page.page');
-
-
-// src/api/tag/content-types/tag/schema.json
-{
-  "kind": "collectionType",
-  "collectionName": "tags",
-  "info": {
-    "singularName": "tag",
-    "pluralName": "tags",
-    "displayName": "Tag",
-    "description": ""
-  },
-  "options": {
-    "draftAndPublish": false
-  },
-  "pluginOptions": {},
-  "attributes": {
-    "title": {
-      "type": "string",
-      "required": true,
-      "unique": true
-    },
-    "description": {
-      "type": "string"
-    },
-    "hex_color": {
-      "type": "string",
-      "maxLength": 7,
-      "minLength": 7
-    },
-    "slug": {
-      "type": "string",
-      "required": true,
-      "unique": true
-    },
-    "jokes": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::joke.joke",
-      "mappedBy": "tags"
-    },
-    "safe_content_preference": {
-      "type": "enumeration",
-      "enum": [
-        "strict",
-        "moderate",
-        "open"
-      ],
-      "default": "moderate"
-    }
-  }
-}
-
-
-// src/api/tag/controllers/tag.ts
-/**
- * tag controller
- */
-
-import { factories } from '@strapi/strapi'
-
-export default factories.createCoreController('api::tag.tag');
-
-
-// src/api/tag/routes/tag.ts
-/**
- * tag router
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreRouter('api::tag.tag');
-
-
-// src/api/tag/services/tag.ts
-/**
- * tag service
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreService('api::tag.tag');
-
-
-// src/api/vote/content-types/vote/schema.json
-{
-  "kind": "collectionType",
-  "collectionName": "votes",
-  "info": {
-    "singularName": "vote",
-    "pluralName": "votes",
-    "displayName": "Vote",
-    "description": ""
-  },
-  "options": {
-    "draftAndPublish": false
-  },
-  "pluginOptions": {},
-  "attributes": {
-    "value": {
-      "type": "enumeration",
-      "enum": [
-        "up",
-        "down",
-        "neutral"
-      ],
-      "default": "neutral",
-      "required": true
-    },
-    "ip_address": {
-      "type": "string"
-    },
-    "author": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "plugin::users-permissions.user"
-    }
-  }
-}
-
-
-// src/api/vote/controllers/vote.ts
-/**
- * vote controller
- */
-
-import { factories } from '@strapi/strapi'
-
-export default factories.createCoreController('api::vote.vote');
-
-
-// src/api/vote/routes/vote.ts
-/**
- * vote router
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreRouter('api::vote.vote');
-
-
-// src/api/vote/services/vote.ts
-/**
- * vote service
- */
-
-import { factories } from '@strapi/strapi';
-
-export default factories.createCoreService('api::vote.vote');
-
-
-// src/extensions/.gitkeep
-
-
-// src/extensions/users-permissions/content-types/user/schema.json
-{
-  "kind": "collectionType",
-  "collectionName": "up_users",
-  "info": {
-    "name": "user",
-    "description": "",
-    "singularName": "user",
-    "pluralName": "users",
-    "displayName": "User"
-  },
-  "options": {
-    "draftAndPublish": false
-  },
-  "attributes": {
-    "username": {
-      "type": "string",
-      "minLength": 3,
-      "unique": true,
-      "configurable": false,
-      "required": true
-    },
-    "email": {
-      "type": "email",
-      "minLength": 6,
-      "configurable": false,
-      "required": true
-    },
-    "provider": {
-      "type": "string",
-      "configurable": false
-    },
-    "password": {
-      "type": "password",
-      "minLength": 6,
-      "configurable": false,
-      "private": true,
-      "searchable": false
-    },
-    "resetPasswordToken": {
-      "type": "string",
-      "configurable": false,
-      "private": true,
-      "searchable": false
-    },
-    "confirmationToken": {
-      "type": "string",
-      "configurable": false,
-      "private": true,
-      "searchable": false
-    },
-    "confirmed": {
-      "type": "boolean",
-      "default": false,
-      "configurable": false
-    },
-    "blocked": {
-      "type": "boolean",
-      "default": false,
-      "configurable": false
-    },
-    "role": {
-      "type": "relation",
-      "relation": "manyToOne",
-      "target": "plugin::users-permissions.role",
-      "inversedBy": "users",
-      "configurable": false
-    },
-    "first_name": {
-      "type": "string"
-    },
-    "last_name": {
-      "type": "string"
-    },
-    "date_of_birth": {
-      "type": "date"
-    },
-    "biography": {
-      "type": "string"
-    },
-    "safe_content_preference": {
-      "type": "enumeration",
-      "enum": [
-        "strict",
-        "moderate",
-        "open"
-      ],
-      "default": "moderate",
-      "required": true
-    },
-    "ip_address": {
-      "type": "string"
-    },
-    "gender": {
-      "type": "enumeration",
-      "enum": [
-        "male",
-        "female"
-      ],
-      "default": "male",
-      "required": true
-    }
-  }
-}
-
-
-// src/index.ts
-export default {
-  /**
-   * An asynchronous register function that runs before
-   * your application is initialized.
-   *
-   * This gives you an opportunity to extend code.
-   */
-  register(/*{ strapi }*/) {},
-
-  /**
-   * An asynchronous bootstrap function that runs before
-   * your application gets started.
-   *
-   * This gives you an opportunity to set up your data model,
-   * run jobs, or perform some special logic.
-   */
-  bootstrap(/*{ strapi }*/) {},
-};
-
-
-// src/utilities/clean_database.ts
-namespace JokesDatabaseCleaner {
-	const mysql = require("mysql2/promise");
-	const prompts = require("prompts");
-	const arabicString = require("@6degrees/arabic-strings");
-	require("colors");
-
-	require("dotenv").config();
-
-	require("util").inspect.defaultOptions.depth = 1;
-
-	var pool1 = mysql.createPool({
-		connectionLimit: 300,
-		host: process.env.DATABASE_HOST_OLD,
-		user: process.env.DATABASE_USERNAME_OLD,
-		password: process.env.DATABASE_PASSWORD_OLD,
-		database: process.env.DATABASE_NAME_OLD,
-	});
-
-	let my_sql_pool_connection;
-
-	async function clean() {
-		my_sql_pool_connection = await pool1.getConnection();
-
-		try {
-			// Clean joke slugs
-			await clean_slugs();
-		} catch (error) {
-			console.error(error);
-		}
-
-		console.log("reached here");
-		my_sql_pool_connection.release();
-		process.exit(0);
-	}
-
-	async function clean_slugs() {
-		const characters = "ًٌٍَُِِّْے~!@#$?؟ہ^!";
-
-		let result = await my_sql_pool_connection.query(
-			`SELECT * FROM jokes where slug REGEXP '[${characters}]';`
-		);
-
-		if (Array.isArray(result[0]) && result[0].length > 0) {
-			// we got results, lets loop through for bunches of CHUNK_SIZE and prompt for cleaning
-
-			let response = await prompts({
-				type: "confirm",
-				name: "value",
-				message: `Found ${result[0].length}  results, do you want to see them ?`,
-				initial: true,
-			});
-
-			if (response.value == true) {
-				const CHUNK_SIZE = 100;
-				const chunked_array = chunkArray(result[0], CHUNK_SIZE);
-
-				// loop through the chunks
-				for (const group of chunked_array) {
-					// loop through the chunk and show original and fix, then prompt the user for fix
-					let fixed_jokes_slugs_array = [];
-					
-					for (const item of group) {
-						let string_to_clean = item.slug;
-						string_to_clean = arabicString.sanitize(string_to_clean);
-						string_to_clean = arabicString.removeNonArabic(string_to_clean,"-");
-						string_to_clean = string_to_clean.replace("--", "-");
-						fixed_jokes_slugs_array.push({
-							id: item.id,
-							slug: string_to_clean,
-						});
-
-						console.log(item.slug + "\t" + string_to_clean.green);
-					}
-
-					let fix_slug_response = await prompts({ 
-						type: "confirm",
-						name: "value",
-						message: `do you want to fix them ??`,
-						initial: true,
-					});
-
-					if (fix_slug_response.value == true) {
-						console.log(
-							"oh my god, you want to fix them 👀, ok, we will do it for you, hang tight"
-						);
-						//console.log(fixed_jokes_slugs_array[0]);
-						await updateRecords('jokes',fixed_jokes_slugs_array);
-
-
-						let continue_fix_slug_response = await prompts({
-							type: "confirm",
-							name: "value",
-							message: `shall we continue or stop ??`,
-							initial: true,
-						});
-
-						if (continue_fix_slug_response.value == false) {break;}
-					} else {
-						console.log("I hope you are sure about this");
-					}
-				}
-			}
-		} else {
-			console.log("found nothing, moving to next check");
-		}
-	}
-
-	function chunkArray(arr, CHUNK_SIZE) {
-		let return_array = [];
-
-		for (let i = 0; i < arr.length; i += CHUNK_SIZE) {
-			const chunk = arr.slice(i, i + CHUNK_SIZE);
-			return_array.push(chunk);
-		}
-
-		return return_array;
-	}
-
-	async function updateRecords(table_name, records) {	
-		for (const record of records) {
-			const record_id = record.id;
-			console.log(`Fixing ${table_name} record ${record_id}`)
-			delete record.id;
-			try {
-				let result = await my_sql_pool_connection.query(
-					`UPDATE ${table_name} SET ? WHERE id = ?`,
-					[record, record_id]
-				);
-			} catch (error) {
-				console.log('couldnt update it, an error occured', error.message.red)
-				continue;
-			}
-			
-		}
-	}
-
-	clean();
-}
-
-
-// src/utilities/mfo_tools.ts
-//const slug = require('slugify');
-const allowed_characters_regex = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
-
-function strip_tags_and_new_lines(text) {
-    if (!text) return false;
-    text = text.toString();
-    return text.replace(/<\/?[^>]+>|[\r\n]/g, '');
-}
-
-function shorten(text, maxLen, separator = ' ') {
-    if (text.length <= maxLen) return text;
-    if (typeof separator !== 'string' || separator.length === 0) {
-        throw new Error('Invalid separator argument: must be a non-empty string');
-    }
-    return text.substr(0, text.lastIndexOf(separator, maxLen));
-}
-
-
-export default {
-
-    clean_adult_content(jokes_array, adult_selection) {
-        if (!adult_selection) {
-            jokes_array = jokes_array.filter(elem => {
-                let visibile = true;
-
-                elem.tags.forEach(element => {
-                    if (element.adult_content) {
-                        visibile = false;
-                        return;
-                    }
-                });
-
-                if (!visibile) return undefined;
-                else return elem;
-            })
-        }
-        return jokes_array;
-    },
-
-    async filter_array(arr, callback) {
-        const fail = Symbol()
-        return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i => i !== fail)
-    },
-
-    generate_slug(text) {
-        text = strip_tags_and_new_lines(text);
-        text = text.replace(/ +(?= )/g, '');
-        text = text.trim();
-        text = text.replace("يقول لك", "");
-        text = text.replace(allowed_characters_regex, "");
-        text = text.trim();
-        text = shorten(text, 50).trim().replace(/[" "]/g, "-");
-        return text
-    },
-
-}
-
-// src/utilities/migrate_db.ts
-namespace JokesDatabaseCleaner {
-	var mysql = require("mysql2/promise");
-require('dotenv').config();
-
-require('util').inspect.defaultOptions.depth = 1;
-//console.log(process.env);
-var pool1 = mysql.createPool({
-	connectionLimit: 300,
-	host: process.env.DATABASE_HOST_OLD,
-	user: process.env.DATABASE_USERNAME_OLD,
-	password: process.env.DATABASE_PASSWORD_OLD,
-	database: process.env.DATABASE_NAME_OLD,
-});
-
-var pool2 = mysql.createPool({
-	connectionLimit: 300,
-	host: process.env.DATABASE_HOST,
-	user: process.env.DATABASE_USERNAME,
-	password: process.env.DATABASE_PASSWORD,
-	database: process.env.DATABASE_NAME,
-});
-
-let connection_1, connection_2;
-
-async function migrateData() {
-	connection_1 = await pool1.getConnection();
-	connection_2 = await pool2.getConnection();
-	
-	try {
-		let data: any = {};
-
-		// GET DATA
-		data.tags = await connection_1.query("SELECT * FROM tags");
-		data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");	
-		data.pages = await connection_1.query("SELECT * FROM pages");
-		data.comments = await connection_1.query("SELECT * FROM comments");
-		data.votes = await connection_1.query("SELECT * FROM votes");
-		data.jokes = await connection_1.query("SELECT * FROM jokes");
-		data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
-		data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
-		data.comments_comment_author_user_links = [];
-		data.users_roles = [];
-		data.votes_authors = [];
-		data.jokes_authors = [];
-
-		// fix jokes parameters
-		data.jokes[0] = data.jokes[0].map((joke) => {
-			data.jokes_authors.push({
-				joke_id: joke.id,
-				user_id: joke.created_by,
-			});
-	
-			renameObjectProperty(joke,"created_by", "created_by_id");
-			renameObjectProperty(joke,"updated_by", "updated_by_id");
-			joke.created_by_id = 1;
-			joke.updated_by_id = 1;
-
-			delete joke.author;
-			return joke;
-		});
-
-		// fix user parameters
-		data.users[0] = data.users[0].map((user) =>{
-			data.users_roles.push({
-				user_id: user.id,
-				role_id: user.role
-			})
-
-			delete user.role;
-
-			if(user.adult_content == 'hide'){
-				user.adult_content = 'moderate';
-			}else{
-				user.adult_content = 'open';
-			}
-
-			renameObjectProperty(user,"resetPasswordToken", "reset_password_token");
-			renameObjectProperty(user,"created_by", "created_by_id");
-			renameObjectProperty(user,"updated_by", "updated_by_id");
-			renameObjectProperty(user,"confirmationToken", "confirmation_token");
-			renameObjectProperty(user,"adult_content", "safe_content_preference");
-
-			return user;
-		})
-
-		// fix comments complicated
-		data.comments[0] = data.comments[0].map((comment) =>{
-			if(comment.authorUser){
-				data.comments_comment_author_user_links.push({
-					user_id: comment.authorUser,
-					comment_id: comment.id
-				})	
-			}
-
-			renameObjectProperty(comment,"authorName", "author_name");
-			renameObjectProperty(comment,"authorEmail", "author_email");
-			renameObjectProperty(comment,"authorAvatar", "author_avatar");
-			renameObjectProperty(comment,"created_by", "created_by_id");
-			renameObjectProperty(comment,"updated_by", "updated_by_id");
-			renameObjectProperty(comment,"approvalStatus", "approval_status");
-
-			comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
-			delete comment.relatedSlug;
-			delete comment.blockedThread;
-			delete comment.blockReason;
-			delete comment.points;
-			delete comment.authorUser;
-			delete comment.authorType;
-			delete comment.authorId;
-			delete comment.threadOf;
-			delete comment.author;
-			
-			return comment;
-		})
-
-		// fix tags
-		data.tags[0] = data.tags[0].map((tag) =>{
-			if(tag.adult_content == 'hide'){
-				tag.adult_content = 'moderate';
-			}else{
-				tag.adult_content = 'open';
-			}
-
-			renameObjectProperty(tag,"adult_content", "safe_content_preference");
-			renameObjectProperty(tag,"created_by", "created_by_id");
-			renameObjectProperty(tag,"updated_by", "updated_by_id");
-
-			return tag;
-		})
-
-		// fix pages
-		data.pages[0] = data.pages[0].map((page) =>{
-			renameObjectProperty(page,"created_by", "created_by_id");
-			renameObjectProperty(page,"updated_by", "updated_by_id");
-
-			return page;
-		})
-
-		// fix votes
-		data.votes[0] = data.votes[0].map((vote) =>{
-			if(vote.author){
-				data.votes_authors.push({
-					vote_id: vote.id,
-					user_id: vote.author
-				})
-			}
-			else if(vote.created_by != 1){
-				data.votes_authors.push({
-					vote_id: vote.id,
-					user_id: vote.created_by
-				})
-			}
-
-			delete vote.author;
-
-			renameObjectProperty(vote,"created_by", "created_by_id");
-			renameObjectProperty(vote,"updated_by", "updated_by_id");
-
-			vote.created_by_id = 1;
-			vote.updated_by_id = 1;
-
-			return vote;
-		})
-
-		console.log(`
-got:
-	${data.jokes[0].length} jokes, 
-	${data.tags[0].length} tags, 
-	${data.users[0].length} users, 
-	${data.comments[0].length} comments
-	${data.votes[0].length} votes
-	${data.pages[0].length} pages`
-);
-
-		// clear bfore insert
-		await resetTablesContent();
-		//await chunkAndRun(data.pages[0], 200, "pages");
-		//await chunkAndRun(data.users[0], 400, "up_users");
-		//await chunkAndRun(data.tags[0], 200, "tags");
-		//await chunkAndRun(data.jokes[0], 200, "jokes");
-		//await chunkAndRun(data.votes[0], 200, "votes");
-
-		//await chunkAndRun(data.jokes_authors,300,"jokes_author_links");
-		await chunkAndRun(data.jokes_tags[0], 200, "jokes_tags_links");
-		await chunkAndRun(data.jokes_votes[0], 200, "jokes_votes_links");
-		await chunkAndRun(data.users_roles, 400, "up_users_role_links");
-		await chunkAndRun(data.votes_authors, 200, "votes_author_links");
-		
-		await chunkAndRun(data.comments[0], 400, "comments_comment");
-		await chunkAndRun(data.comments_comment_author_user_links, 200, "comments_comment_author_user_links");
-
-		console.log("finished first insert batch");
-		
-	} 
-	catch (error) {
-		console.error(error);
-	}
-}
-
-async function chunkAndRun(	array: Array<any>,	chunk_size: number,	table_name: string, reset_table_content: boolean = false) {
-
-	if(reset_table_content){
-		resetTablesContent(table_name);
-	}
-
-	connection_1 = await pool1.getConnection();
-	connection_2 = await pool2.getConnection();
-	const sql_statement = `INSERT INTO ${table_name} SET ?`;
-	console.log("executing " + sql_statement);
-	
-
-	let promise_group = array.map((data) => connection_2.query(sql_statement, data));
-
-	let return_array = [];
-
-	for (let i = 0; i < promise_group.length; i += chunk_size) {
-		const chunk = promise_group.slice(i, i + chunk_size);
-		return_array.push(chunk);
-	}
-
-	let count = 1;
-
-	for (const item of return_array) {
-		console.log(`inserting batch ${count}/${return_array.length}`);
-		const insertResults = await Promise.all(item);
-		count++;
-	}
-
-	// Kill connections
-	connection_1.release();
-	connection_2.release();
-}
-
-function renameObjectProperty(obj,oldProperty,newProperty){
-
-	Object.defineProperty(
-		obj,
-		newProperty,
-	Object.getOwnPropertyDescriptor(obj, oldProperty)
-	);
-	delete obj[oldProperty];
-
-}
-
-async function resetTablesContent(table_name = ''){
-	const database_tables = [
-		//'pages',
-		//'up_users',
-		//'tags',
-	//	'jokes',
-	//	'votes',
-	//	'jokes_author_links',
-		'jokes_tags_links',
-		'jokes_votes_links',
-		'up_users_role_links',
-		'votes_author_links',
-		'comments_comment',
-		'comments_comment_author_user_links',
-	];
-
-	await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
-
-	for (const table of database_tables) {
-		await connection_2.query(`Truncate table ${table}`);
-	}
-
-	await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");
-}
-
-migrateData();
-}
-
-
-// src/utilities/private/clean_database.ts
-var mysql = require("mysql2/promise");
-const prompts = require('prompts');
-const arabicString = require('@6degrees/arabic-strings');
-require('dotenv').config();
-require('util').inspect.defaultOptions.depth = 1;
-
-async function main() {
-	console.log('creating sql connection pool')
-	const pool1 = mysql.createPool({
-		connectionLimit: 300,
-		host: process.env.DATABASE_HOST_OLD,
-		user: process.env.DATABASE_USERNAME_OLD,
-		password: process.env.DATABASE_PASSWORD_OLD,
-		database: process.env.DATABASE_NAME_OLD,
-	});
-	console.log('connecting to the')
-	let mycon = await pool1.getConnection();
-	
-	try {
-		// Clean joke slugs
-		const characters = 'ًٌٍَُِِّْے~!@#$?؟ہ^!';
-
-		let result = await mycon.query(`SELECT * FROM jokes where slug REGEXP '[${characters}]';`);
-		
-		if(result[0].length>0){
-			let response = await prompts({
-				type: 'confirm',
-				name: 'value',
-				message: `Found ${result[0].length}  results, do you want to see them ?`,
-				initial: true
-			  });
-			  
-			  if(response.value == true){
-
-				for(let i =0; i <= 20; i++){
-					let mystr = result[0][i].slug;
-					console.log(mystr);
-
-					mystr = arabicString.sanitize(mystr);
-					mystr = arabicString.removeNonArabic(mystr, "-");
-					mystr = mystr.replace('--','-');
-					console.log(mystr + '\r\n')
-				}
-
-			  }
-
-			  response = await prompts({
-				type: 'confirm',
-				name: 'value',
-				message: `do you want to fix them ?`,
-				initial: true
-			  });
-
-			  console.log('oh my god, you want to fix them 👀');
-		}
-		else{
-			console.log('found nothing, moving to next check')
-		}
-		  
-		   
-	} 
-	catch (error) {
-		console.error(error);
-	}
-
-	console.log('reached here')
-	process.exit(0);
-
-}
-
-main();
-
-// src/utilities/private/migrate_db.ts
-var mysql = require("mysql2/promise");
-require('dotenv').config();
-
-require('util').inspect.defaultOptions.depth = 1;
-//console.log(process.env);
-var pool1 = mysql.createPool({
-	connectionLimit: 300,
-	host: process.env.DATABASE_HOST_OLD,
-	user: process.env.DATABASE_USERNAME_OLD,
-	password: process.env.DATABASE_PASSWORD_OLD,
-	database: process.env.DATABASE_NAME_OLD,
-});
-
-var pool2 = mysql.createPool({
-	connectionLimit: 300,
-	host: process.env.DATABASE_HOST,
-	user: process.env.DATABASE_USERNAME,
-	password: process.env.DATABASE_PASSWORD,
-	database: process.env.DATABASE_NAME,
-});
-
-let connection_1, connection_2;
-
-async function migrateData() {
-	connection_1 = await pool1.getConnection();
-	connection_2 = await pool2.getConnection();
-	
-	try {
-		let data: any = {};
-
-		// GET DATA
-		data.tags = await connection_1.query("SELECT * FROM tags");
-		data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");	
-		data.pages = await connection_1.query("SELECT * FROM pages");
-		data.comments = await connection_1.query("SELECT * FROM comments");
-		data.votes = await connection_1.query("SELECT * FROM votes");
-		data.jokes = await connection_1.query("SELECT * FROM jokes");
-		data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
-		data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
-		data.comments_comment_author_user_links = [];
-		data.users_roles = [];
-		data.votes_authors = [];
-		data.jokes_authors = [];
-
-		// fix jokes parameters
-		data.jokes[0] = data.jokes[0].map((joke) => {
-			data.jokes_authors.push({
-				joke_id: joke.id,
-				user_id: joke.created_by,
-			});
-	
-			renameObjectProperty(joke,"created_by", "created_by_id");
-			renameObjectProperty(joke,"updated_by", "updated_by_id");
-			joke.created_by_id = 1;
-			joke.updated_by_id = 1;
-
-			delete joke.author;
-			return joke;
-		});
-
-		// fix user parameters
-		data.users[0] = data.users[0].map((user) =>{
-			data.users_roles.push({
-				user_id: user.id,
-				role_id: user.role
-			})
-
-			delete user.role;
-
-			if(user.adult_content == 'hide'){
-				user.adult_content = 'moderate';
-			}else{
-				user.adult_content = 'open';
-			}
-
-			renameObjectProperty(user,"resetPasswordToken", "reset_password_token");
-			renameObjectProperty(user,"created_by", "created_by_id");
-			renameObjectProperty(user,"updated_by", "updated_by_id");
-			renameObjectProperty(user,"confirmationToken", "confirmation_token");
-			renameObjectProperty(user,"adult_content", "safe_content_preference");
-
-			return user;
-		})
-
-		// fix comments complicated
-		data.comments[0] = data.comments[0].map((comment) =>{
-			if(comment.authorUser){
-				data.comments_comment_author_user_links.push({
-					user_id: comment.authorUser,
-					comment_id: comment.id
-				})	
-			}
-
-			renameObjectProperty(comment,"authorName", "author_name");
-			renameObjectProperty(comment,"authorEmail", "author_email");
-			renameObjectProperty(comment,"authorAvatar", "author_avatar");
-			renameObjectProperty(comment,"created_by", "created_by_id");
-			renameObjectProperty(comment,"updated_by", "updated_by_id");
-			renameObjectProperty(comment,"approvalStatus", "approval_status");
-
-			comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
-			delete comment.relatedSlug;
-			delete comment.blockedThread;
-			delete comment.blockReason;
-			delete comment.points;
-			delete comment.authorUser;
-			delete comment.authorType;
-			delete comment.authorId;
-			delete comment.threadOf;
-			delete comment.author;
-			
-			return comment;
-		})
-
-		// fix tags
-		data.tags[0] = data.tags[0].map((tag) =>{
-			if(tag.adult_content == 'hide'){
-				tag.adult_content = 'moderate';
-			}else{
-				tag.adult_content = 'open';
-			}
-
-			renameObjectProperty(tag,"adult_content", "safe_content_preference");
-			renameObjectProperty(tag,"created_by", "created_by_id");
-			renameObjectProperty(tag,"updated_by", "updated_by_id");
-
-			return tag;
-		})
-
-		// fix pages
-		data.pages[0] = data.pages[0].map((page) =>{
-			renameObjectProperty(page,"created_by", "created_by_id");
-			renameObjectProperty(page,"updated_by", "updated_by_id");
-
-			return page;
-		})
-
-		// fix votes
-		data.votes[0] = data.votes[0].map((vote) =>{
-			if(vote.author){
-				data.votes_authors.push({
-					vote_id: vote.id,
-					user_id: vote.author
-				})
-			}
-			else if(vote.created_by != 1){
-				data.votes_authors.push({
-					vote_id: vote.id,
-					user_id: vote.created_by
-				})
-			}
-
-			delete vote.author;
-
-			renameObjectProperty(vote,"created_by", "created_by_id");
-			renameObjectProperty(vote,"updated_by", "updated_by_id");
-
-			vote.created_by_id = 1;
-			vote.updated_by_id = 1;
-
-			return vote;
-		})
-
-		console.log(`
-got:
-	${data.jokes[0].length} jokes, 
-	${data.tags[0].length} tags, 
-	${data.users[0].length} users, 
-	${data.comments[0].length} comments
-	${data.votes[0].length} votes
-	${data.pages[0].length} pages`
-);
-
-		// clear bfore insert
-		await resetTablesContent();
-
-		await chunkAndRun(data.pages[0], 200, "INSERT INTO pages SET ?");
-		await chunkAndRun(data.users[0], 400, "INSERT INTO up_users SET ?");
-		await chunkAndRun(data.jokes[0], 200, "INSERT INTO jokes SET ?");
-		await chunkAndRun(data.tags[0], 200, "INSERT INTO tags SET ?");
-		await chunkAndRun(data.votes[0], 200, "INSERT INTO votes SET ?");
-
-		await chunkAndRun(data.jokes_authors,300,"INSERT INTO jokes_author_links SET ?"	);
-		await chunkAndRun(data.jokes_tags[0], 200, "INSERT INTO jokes_tags_links SET ?");
-		await chunkAndRun(data.jokes_votes[0], 200, "INSERT INTO jokes_votes_links SET ?");
-		await chunkAndRun(data.users_roles, 400, "INSERT INTO up_users_role_links SET ?");
-		await chunkAndRun(data.votes_authors, 200, "INSERT INTO votes_author_links SET ?");
-		
-		await chunkAndRun(data.comments[0], 400, "INSERT INTO comments_comment SET ?");
-		await chunkAndRun(data.comments_comment_author_user_links, 200, "INSERT INTO comments_comment_author_user_links SET ?");
-
-		console.log("finished first insert batch");
-		
-	} 
-	catch (error) {
-		console.error(error);
-	}
-}
-
-async function chunkAndRun(	array: Array<any>,	chunk_size: number,	sql_statement: string) {
-
-	connection_1 = await pool1.getConnection();
-	connection_2 = await pool2.getConnection();
-
-	console.log("executing " + sql_statement);
-
-	let promise_group = array.map((data) => connection_2.query(sql_statement, data));
-
-	let return_array = [];
-
-	for (let i = 0; i < promise_group.length; i += chunk_size) {
-		const chunk = promise_group.slice(i, i + chunk_size);
-		return_array.push(chunk);
-	}
-
-	let count = 1;
-
-	for (const item of return_array) {
-		console.log(`inserting batch ${count}/${return_array.length}`);
-		const insertResults = await Promise.all(item);
-		count++;
-	}
-
-	// Kill connections
-	connection_1.release();
-	connection_2.release();
-}
-
-function renameObjectProperty(obj,oldProperty,newProperty){
-
-	Object.defineProperty(
-		obj,
-		newProperty,
-	Object.getOwnPropertyDescriptor(obj, oldProperty)
-	);
-	delete obj[oldProperty];
-
-}
-
-async function resetTablesContent(){
-	const database_tables = [
-		'jokes',
-		'comments_comment',
-		'up_users',
-		'votes',
-		'tags',
-		'pages',
-		'up_users_role_links',
-		'jokes_author_links',
-		'jokes_tags_links',
-		'comments_comment_author_user_links',
-		'jokes_votes_links',
-		'up_users_role_links',
-		'votes_author_links',
-	];
-
-	await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
-
-	for (const table of database_tables) {
-		await connection_2.query(`Truncate table ${table}`);
-	}
-
-	await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");
-}
-
-migrateData();
-
-// tsconfig.json
-{
-  "extends": "@strapi/typescript-utils/tsconfigs/server",
-  "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "."
-  },
-  "include": [
-    "./",
-    "./**/*.ts",
-    "./**/*.js",
-    "src/**/*.json"
-  ],
-  "exclude": [
-    "node_modules/",
-    "build/",
-    "dist/",
-    ".cache/",
-    ".tmp/",
-    "src/admin/",
-    "**/*.test.*",
-    "src/plugins/**"
-  ]
-}
-
-
-// v3/api/jokes/config/routes.json
-{
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/jokes",
-      "handler": "jokes.find",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-        "method": "GET",
-        "path": "/jokes/pending",
-        "handler": "jokes.findPending",
-        "config": {
-          "policies": []
-        }
-      },
-    {
-      "method": "GET",
-      "path": "/jokes/count",
-      "handler": "jokes.count",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/jokes/:id",
-      "handler": "jokes.findOne",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/jokes",
-      "handler": "jokes.create",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-        "method": "POST",
-        "path": "/jokes/:id/vote",
-        "handler": "jokes.vote",
-        "config": {
-          "policies": []
-        }
-      },
-    {
-      "method": "PUT",
-      "path": "/jokes/:id",
-      "handler": "jokes.update",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "DELETE",
-      "path": "/jokes/:id",
-      "handler": "jokes.delete",
-      "config": {
-        "policies": []
-      }
-    }
-  ]
-}
-
-
-// v3/api/jokes/controllers/jokes.js
-'use strict';
-
+/*
 const { sanitizeEntity } = require('strapi-utils');
 
 module.exports = {
@@ -2160,401 +1907,277 @@ module.exports = {
     },
   };
 
-// v3/api/jokes/models/jokes.js
-"use strict";
+*/
 
-/**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
- * to customize this model
- */
-
-const { generate_slug } = require("../../../utilities/mfo_tools");
-
-module.exports = {
-  lifecycles: {
-    beforeCreate: async (data) => {
-      if (data.content) {
-        data.slug = generate_slug(data.content);
-      }
-    },
-    beforeUpdate: async (params, data) => {
-      if (data.content) {
-        data.slug = generate_slug(data.content);
-      }
-    },
-  },
-};
-
-
-// v3/api/jokes/models/jokes.settings.json
-{
-  "kind": "collectionType",
-  "collectionName": "jokes",
-  "info": {
-    "name": "Jokes",
-    "description": ""
-  },
-  "options": {
-    "increments": true,
-    "timestamps": true,
-    "draftAndPublish": false
-  },
-  "attributes": {
-    "comments": {
-      "plugin": "comments",
-      "collection": "comment",
-      "via": "related"
-    },
-    "content": {
-      "type": "text",
-      "required": true,
-      "unique": false
-    },
-    "status": {
-      "type": "enumeration",
-      "enum": [
-        "active",
-        "pending",
-        "reported",
-        "deleted"
-      ],
-      "default": "pending",
-      "required": true
-    },
-    "remarks": {
-      "type": "text",
-      "private": true
-    },
-    "slug": {
-      "type": "string",
-      "required": false,
-      "unique": true
-    },
-    "tags": {
-      "collection": "tag",
-      "via": "jokes",
-      "dominant": true
-    },
-    "votes": {
-      "collection": "votes"
-    },
-    "author": {
-      "via": "jokes",
-      "plugin": "users-permissions",
-      "model": "user"
-    }
-  }
-}
-
-
-// v3/api/jokes/services/jokes.js
-'use strict';
-
-module.exports = {
-    
-};
-
-
-// v3/api/pages/config/routes.json
-{
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/pages",
-      "handler": "pages.find",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/pages/count",
-      "handler": "pages.count",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/pages/:id",
-      "handler": "pages.findOne",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/pages",
-      "handler": "pages.create",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "PUT",
-      "path": "/pages/:id",
-      "handler": "pages.update",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "DELETE",
-      "path": "/pages/:id",
-      "handler": "pages.delete",
-      "config": {
-        "policies": []
-      }
-    }
-  ]
-}
-
-
-// v3/api/pages/controllers/pages.js
-'use strict';
-
-/**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
- * to customize this controller
- */
-
-module.exports = {};
-
-
-// v3/api/pages/models/pages.js
-'use strict';
-
-/**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
- * to customize this model
- */
-
-const { generate_slug } = require("../../../utilities/mfo_tools");
-
-const slug = require('slugify');
-
-module.exports = {
-    
-    lifecycles: {
-      beforeCreate: async (data) => {    
-        if (data.title) {
-            data.slug = generate_slug(data.content);
-        }
-      },
-      beforeUpdate: async (params, data) => {
-        if (data.title) {
-            data.slug = generate_slug(data.content);
-        }
-      },
-    },
-  };
+// const { createCoreController } = require('@strapi/strapi').factories;
+// module.exports = createCoreController('api::joke.joke', ({ strapi }) => ({
+//     async find(ctx) {
+//       // Calling the default core action
+//       const { data, meta } = await super.find(ctx);
+//       const query = strapi.db.query('api::joke.joke');
+//       await Promise.all(
+//         data.map(async (item, index) => {
+//           const foundItem = await query.findOne({
+//             where: {
+//               id: item.id,
+//             },
+//             populate: ['createdBy', 'updatedBy'],
+//           });
+          
+//           data[index].attributes.createdBy = {
+//             id: foundItem.createdBy.id,
+//             firstname: foundItem.createdBy.firstname,
+//             lastname: foundItem.createdBy.lastname,
+//           };
+//           data[index].attributes.updatedBy = {
+//             id: foundItem.updatedBy.id,
+//             firstname: foundItem.updatedBy.firstname,
+//             lastname: foundItem.updatedBy.lastname,
+//           };
+//         })
+//       );
+//       return { data, meta };
+//     },
+//   }));
   
 
 
-// v3/api/pages/models/pages.settings.json
+// src/api/joke/routes/joke.ts
+/**
+ * joke router
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::joke.joke');
+
+// Route for voting and findPending
+
+// src/api/joke/services/joke.ts
+/**
+ * joke service
+ */
+
+import { factories } from '@strapi/strapi';
+import { Context } from "koa";
+
+
+export default factories.createCoreService('api::joke.joke', {
+
+  // enhanced with chatgpt
+  async countPending(ctx: Context) {
+    const ipAddress = ctx.req.socket.remoteAddress || ctx.request.socket.remoteAddress;
+    const { user } = ctx.state;
+
+    const alreadyVotedIds = await this.getAlreadyVoted(user, ipAddress);
+
+    const query = {
+      id_nin: alreadyVotedIds,
+      _sort: 'id:DESC',
+      status: 'pending',
+      populate: 'tags'
+    };
+
+    const entities = ctx.query._q ? await strapi.service('api::joke.joke').search(query) : await strapi.service('api::joke.joke').find(query);
+
+    const cleanedEntities = strapi.service('api::globalcall.globalcall').clean_adult_content(entities.results, false);
+
+    return cleanedEntities.length;
+  },
+
+  // Function to get the IDs of jokes that the user or IP has already voted on
+  async getAlreadyVoted(user: any, ipAddress: string) {
+    let alreadyVotedIds: number[] = [];
+
+    const query: any = { _or: [] };
+    if (user) {
+      query._or.push({ 'jokes_votes_links.vote_id.author': user.id });
+    }
+    query._or.push({ 'jokes_votes_links.vote_id.ip_address': ipAddress });
+
+    const jokesWithVotes = await strapi.db.query('api::joke.joke').findMany(query);
+    alreadyVotedIds = jokesWithVotes.map(joke => joke.id);
+
+    return alreadyVotedIds;
+  }
+
+  // async getAlreadyVoted(request_user, ip_address) {
+  //   console.log("getAlreadyVoted", request_user, ip_address)
+  //   // Check if reqeuster is  not administrator , then get the list of all jokes voted on.
+  //   let result;
+  //   if (request_user?.role?.name != "Administrator") {
+  //     // GET WHAT USER ALREADY VOTED ON
+  //     let connection_string = this.getAlreadyVotedConnectionString(request_user, ip_address);
+
+  //     const rawBuilder = strapi.db.connection.raw(connection_string);
+  //     const resp = await rawBuilder.then();
+  //     const already_voted = resp[0];
+
+  //     return already_voted.map(elem => {
+  //       return elem.joke_id;
+  //     })
+  //   }
+  // },
+
+  // getAlreadyVotedConnectionString(request_user, ip_address) {
+  //   // native db query  to get user previous votes, either by IP or user ID
+  //   let connection_string = `
+  //         select jokes_votes_links.joke_id 
+  //         from votes 
+  //         left join jokes_votes_links on jokes_votes_links.vote_id = votes.id
+  //         left join jokes_author_links on jokes_author_links.joke_id = jokes_votes_links.joke_id
+          
+  //         where `;
+
+  //   // Check the identifier
+  //   if (request_user) { connection_string += `author = "${request_user.id}" OR` }
+  //   connection_string += ` ip_address = "${ip_address} group by joke_id"`
+  //   return connection_string;
+  // },
+
+  // async countPending(ctx: Context) {
+  //   const ipAddress = ctx.req.socket.remoteAddress || ctx.request.socket.remoteAddress //ctx.req.socket._peername.address;
+  //   const { isAuthenticated, user } = ctx.state // check if authenticated request or not, might be useful in another file
+  //   const alreadyVotedIds = await this.getAlreadyVoted({ user, ipAddress });
+
+  //   const query = {
+  //     id_nin: alreadyVotedIds,
+  //     _sort: 'id:DESC',
+  //     status: 'pending',
+  //   };
+
+  //   const entities = ctx.query._q ? await strapi.services.jokes.search(query) : await strapi.services.jokes.find(query);
+
+  //   const cleanedEntities = clean_adult_content(entities, 0);
+
+  //   return cleanedEntities.length;
+  // }
+});
+
+
+// src/api/page/content-types/page/lifecycles.ts
+export default {
+    beforeCreate(event) {
+      const { data } = event.params;
+
+      if (data.title) {
+        data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.title);
+      }
+
+    },
+  
+    beforeUpdate(event) {
+        const { data } = event.params;
+        if (data.title) {
+            data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.title);
+          }
+    },
+  };
+  
+  
+
+// src/api/page/content-types/page/schema.json
 {
   "kind": "collectionType",
   "collectionName": "pages",
   "info": {
-    "name": "Pages",
+    "singularName": "page",
+    "pluralName": "pages",
+    "displayName": "Page",
     "description": ""
   },
   "options": {
-    "increments": true,
-    "timestamps": true,
     "draftAndPublish": false
   },
+  "pluginOptions": {},
   "attributes": {
-    "comments": {
-        "plugin": "comments",
-        "collection": "comment",
-        "via": "related"
-    },
     "title": {
       "type": "string",
-      "required": true,
-      "unique": true
+      "unique": true,
+      "required": true
     },
     "content": {
-      "type": "richtext"
+      "type": "richtext",
+      "required": true
     },
     "slug": {
       "type": "string",
-      "required": false
+      "required": true
     },
     "votes": {
-      "collection": "votes"
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::vote.vote"
     }
   }
 }
 
 
-// v3/api/pages/services/pages.js
-'use strict';
-
+// src/api/page/controllers/page.ts
 /**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
- * to customize this service
+ * page controller
  */
 
-module.exports = {};
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::page.page');
 
 
-// v3/api/tag/config/routes.json
-{
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/tags",
-      "handler": "tag.find",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/tags/count",
-      "handler": "tag.count",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/tags/:id",
-      "handler": "tag.findOne",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/tags",
-      "handler": "tag.create",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "PUT",
-      "path": "/tags/:id",
-      "handler": "tag.update",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "DELETE",
-      "path": "/tags/:id",
-      "handler": "tag.delete",
-      "config": {
-        "policies": []
-      }
-    }
-  ]
-}
-
-
-// v3/api/tag/controllers/tag.js
-"use strict";
-
+// src/api/page/routes/page.ts
 /**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
- * to customize this controller
- */
-const { sanitizeEntity } = require("strapi-utils");
-
-module.exports = {
-	async find(ctx) {
-
-		ctx.query = {
-			...ctx.query,
-			adult_content: false,
-		};
-
-		const result = await strapi.query('tag').find(ctx.query);
-		let maxJokes = 0;
-		result.forEach((tag) => {
-			if (tag.jokes.length > maxJokes) {
-			  maxJokes = tag.jokes.length;
-			}
-		
-			tag.jokes = tag.jokes.length;
-			tag.jokes_max = maxJokes;
-		  });
-
-		  return sanitizeEntity(result, { model: strapi.models.tag });
-
-		
-
-
-		if (ctx.query._q) {
-			entities = await strapi.services.tag.search(ctx.query);
-		} else {
-			entities = await strapi.services.tag.find(ctx.query);
-		}
-
-		let max = 0;
-
-		// replaces jokes result by count only under tag object
-		entities.forEach((element) => {
-			if (element.jokes.length > max) {
-				max = element.jokes.length;
-			}
-			element.jokes = element.jokes.length;
-		});
-
-		// add jokes_max number for the overall tags to every tag to help with tag font-size functionality
-		entities.forEach((element) => {
-			element.jokes_max = max;
-		});
-
-		return entities.map((entity) =>
-			sanitizeEntity(entity, { model: strapi.models.tag })
-		);
-	},
-};
-
-
-// v3/api/tag/models/tag.js
-"use strict";
-
-/**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
- * to customize this model
+ * page router
  */
 
-const { generate_slug } = require("../../../utilities/mfo_tools");
+import { factories } from '@strapi/strapi';
 
-module.exports = {
-	lifecycles: {
-		beforeCreate: async (data) => {
-			if (data.title) {
-				data.slug = generate_slug(data.content);
-			}
-		},
-		beforeUpdate: async (params, data) => {
-			if (data.title) {
-				data.slug = generate_slug(data.content);
-			}
-		},
-	},
-};
+export default factories.createCoreRouter('api::page.page');
 
 
-// v3/api/tag/models/tag.settings.json
+// src/api/page/services/page.ts
+/**
+ * page service
+ */
+
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::page.page');
+
+
+// src/api/tag/content-types/tag/lifecycles.ts
+export default {
+    beforeCreate(event) {
+      const { data } = event.params;
+
+      if (data.title) {
+        data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.title);
+      }
+
+    },
+  
+    beforeUpdate(event) {
+        const { data } = event.params;
+        if (data.title) {
+            data.slug = strapi.service("api::globalcall.globalcall").generate_slug(data.title);
+          }
+    },
+  };
+  
+  
+
+// src/api/tag/content-types/tag/schema.json
 {
   "kind": "collectionType",
   "collectionName": "tags",
   "info": {
-    "name": "Tags",
+    "singularName": "tag",
+    "pluralName": "tags",
+    "displayName": "Tag",
     "description": ""
   },
   "options": {
-    "increments": true,
-    "timestamps": true,
     "draftAndPublish": false
   },
+  "pluginOptions": {},
   "attributes": {
     "title": {
       "type": "string",
@@ -2564,132 +2187,103 @@ module.exports = {
     "description": {
       "type": "string"
     },
-    "adult_content": {
-      "type": "boolean",
-      "default": false,
-      "required": true
-    },
     "hex_color": {
-      "type": "string"
+      "type": "string",
+      "maxLength": 7,
+      "minLength": 7
     },
     "slug": {
       "type": "string",
-      "required": true
+      "required": true,
+      "unique": true
     },
     "jokes": {
-      "via": "tags",
-      "collection": "jokes"
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::joke.joke",
+      "mappedBy": "tags"
+    },
+    "safe_content_preference": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "moderate"
     }
   }
 }
 
 
-// v3/api/tag/services/tag.js
-'use strict';
-
+// src/api/tag/controllers/tag.ts
 /**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
- * to customize this service
+ * tag controller
  */
 
-module.exports = {};
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::tag.tag');
+
+// const { sanitizeEntity } = require("strapi-utils");
+
+// module.exports = {
+// 	async find(ctx) {
+
+// 		ctx.query = { ...ctx.query, adult_content: false, };
+
+// 		const result = await strapi.query('tag').find(ctx.query);
+// 		let maxJokes = 0;
+// 		result.forEach((tag) => {
+// 			if (tag.jokes.length > maxJokes) {
+// 			  maxJokes = tag.jokes.length;
+// 			}
+		
+// 			tag.jokes = tag.jokes.length;
+// 			tag.jokes_max = maxJokes;
+// 		  });
+
+// 		  return sanitizeEntity(result, { model: strapi.models.tag });
+// 	},
+// };
 
 
-// v3/api/votes/config/routes.json
-{
-  "routes": [
-    {
-      "method": "GET",
-      "path": "/votes",
-      "handler": "votes.find",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/votes/count",
-      "handler": "votes.count",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "GET",
-      "path": "/votes/:id",
-      "handler": "votes.findOne",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "POST",
-      "path": "/votes",
-      "handler": "votes.create",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "PUT",
-      "path": "/votes/:id",
-      "handler": "votes.update",
-      "config": {
-        "policies": []
-      }
-    },
-    {
-      "method": "DELETE",
-      "path": "/votes/:id",
-      "handler": "votes.delete",
-      "config": {
-        "policies": []
-      }
-    }
-  ]
-}
-
-
-// v3/api/votes/controllers/votes.js
-'use strict';
-
+// src/api/tag/routes/tag.ts
 /**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/controllers.html#core-controllers)
- * to customize this controller
+ * tag router
  */
 
-module.exports = {};
+import { factories } from '@strapi/strapi';
 
+export default factories.createCoreRouter('api::tag.tag');
 
-// v3/api/votes/models/votes.js
-'use strict';
+// Should add a route for getting tags count
 
+// src/api/tag/services/tag.ts
 /**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/models.html#lifecycle-hooks)
- * to customize this model
+ * tag service
  */
 
-module.exports = {};
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::tag.tag');
 
 
-// v3/api/votes/models/votes.settings.json
+// src/api/vote/content-types/vote/schema.json
 {
   "kind": "collectionType",
   "collectionName": "votes",
   "info": {
-    "name": "Votes",
+    "singularName": "vote",
+    "pluralName": "votes",
+    "displayName": "Vote",
     "description": ""
   },
   "options": {
-    "increments": true,
-    "timestamps": true,
     "draftAndPublish": false
   },
+  "pluginOptions": {},
   "attributes": {
-    "ip_address": {
-      "type": "string",
-      "private": false
-    },
     "value": {
       "type": "enumeration",
       "enum": [
@@ -2697,304 +2291,67 @@ module.exports = {};
         "down",
         "neutral"
       ],
-      "required": true,
-      "default": "neutral"
+      "default": "neutral",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string"
     },
     "author": {
-      "via": "votes",
-      "plugin": "users-permissions",
-      "model": "user"
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user"
     }
   }
 }
 
 
-// v3/api/votes/services/votes.js
-'use strict';
-
+// src/api/vote/controllers/vote.ts
 /**
- * Read the documentation (https://strapi.io/documentation/v3.x/concepts/services.html#core-services)
- * to customize this service
+ * vote controller
  */
 
-module.exports = {};
+import { factories } from '@strapi/strapi'
+
+export default factories.createCoreController('api::vote.vote');
 
 
-// v3/config/custom.js
-module.exports = {
-    plugins: {
-      comments: {
-        enableUsers: false,
-        badWords: false,
-      },
-    },
-  };
-
-// v3/config/database.js
-module.exports = ({ env }) => ({
-  defaultConnection: 'default',
-  connections: {
-    default: {
-      connector: 'bookshelf',
-      settings: {
-        client: 'mysql',
-        host: env('DATABASE_HOST', 'localhost'),
-        port: env.int('DATABASE_PORT', 3306),
-        database: env('DATABASE_NAME', 'strapi'),
-        username: env('DATABASE_USERNAME', 'strapi'),
-        password: env('DATABASE_PASSWORD', 'strapi'),
-      },
-      options: {},
-    },
-  },
-});
-
-
-// v3/config/env/production/database.js
-module.exports = ({ env }) => ({
-  defaultConnection: 'default',
-  connections: {
-    default: {
-      connector: 'bookshelf',
-      settings: {
-        client: 'mysql',
-        host: env('DATABASE_HOST', 'localhost'),
-        port: env.int('DATABASE_PORT', 3306),
-        database: env('DATABASE_NAME', 'strapi'),
-        username: env('DATABASE_USERNAME', 'strapi'),
-        password: env('DATABASE_PASSWORD', 'strapi'),
-      },
-      options: {},
-    },
-  },
-});
-
-
-// v3/config/env/production/server.js
-module.exports = ({ env }) => ({
-  host: env('HOST', '0.0.0.0'),
-  port: env.int('PORT', 1337),
-  url: env('PUBLIC_URL', 'https://api.f6sny.com'),
-  admin: {
-    url: "/dashboard",
-    auth: {
-      secret: env('ADMIN_JWT_SECRET', 'someSecretKey'),
-    },
-  },
-});
-
-
-// v3/config/functions/bootstrap.js
-'use strict';
-
+// src/api/vote/routes/vote.ts
 /**
- * An asynchronous bootstrap function that runs before
- * your application gets started.
- *
- * This gives you an opportunity to set up your data model,
- * run jobs, or perform some special logic.
- *
- * See more details here: https://strapi.io/documentation/v3.x/concepts/configurations.html#bootstrap
+ * vote router
  */
 
-module.exports = () => {};
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreRouter('api::vote.vote');
 
 
-// v3/config/functions/cron.js
-'use strict';
-
+// src/api/vote/services/vote.ts
 /**
- * Cron config that gives you an opportunity
- * to run scheduled jobs.
- *
- * The cron format consists of:
- * [SECOND (optional)] [MINUTE] [HOUR] [DAY OF MONTH] [MONTH OF YEAR] [DAY OF WEEK]
- *
- * See more details here: https://strapi.io/documentation/v3.x/concepts/configurations.html#cron-tasks
+ * vote service
  */
 
-module.exports = {
-  /**
-   * Simple example.
-   * Every monday at 1am.
-   */
-  // '0 1 * * 1': () => {
-  //
-  // }
-};
+import { factories } from '@strapi/strapi';
+
+export default factories.createCoreService('api::vote.vote');
 
 
-// v3/config/functions/responses/404.js
-'use strict';
-
-module.exports = async (/* ctx */) => {
-  // return ctx.notFound('My custom message 404');
-};
+// src/extensions/.gitkeep
 
 
-// v3/config/plugins.js
-module.exports = {
-	comments: {
-		enableUsers: true,
-		badWords: false,
-		moderatorRoles: ["Authenticated"],
-        relatedContentTypes: {
-            jokes: {
-              uuid: 'application::jokes.jokes',
-              contentManager: true,
-              __contentType: '',
-              key: 'title',
-              value: 'id',
-            }
-          }
-	},
-};
-
-
-// v3/config/server.js
-module.exports = ({ env }) => ({
-  host: env('HOST', '0.0.0.0'),
-  port: env.int('PORT', 1337),
-  admin: {
-    auth: {
-      secret: env('ADMIN_JWT_SECRET', 'someSecretKey'),
-    },
-  },
-});
-
-
-// v3/docker-compose.yml
-version: '3.4'
-services:
-  api_f6sny_com:
-    build:
-      context: .
-    environment:
-      - DATABASE_HOST
-      - DATABASE_PORT
-      - DATABASE_NAME
-      - DATABASE_USERNAME
-      - DATABASE_PASSWORD
-      - DATABASE_SSL
-      - HOST
-      - PORT
-      - URL
-      - ADMIN_JWT_SECRET
-      - PUBLIC_URL
-      - STRAPI_URL
-    ports:
-      - "8010:80"
-
-// v3/Dockerfile
-# docker run -d --name f6sny-strapi -p 8010:80 --rm -it strapi-f6sny
-FROM node:14-alpine
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-COPY package.json /usr/src/app/
-ENV NODE_ENV="production"
-RUN npm install
-COPY . /usr/src/app
-RUN npm run build
-ENV PORT 80
-EXPOSE ${PORT}
-CMD [ "npm","run", "start" ]
-
-// v3/Dockerfile.prod
-FROM node:14-alpine as build
-# Installing libvips-dev for sharp Compatibility
-RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev vips-dev && rm -rf /var/cache/apk/* > /dev/null 2>&1
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
-WORKDIR /opt/
-COPY ./package.json ./package-lock.json ./
-ENV PATH /opt/node_modules/.bin:$PATH
-RUN npm install --production
-WORKDIR /opt/app
-COPY ./ .
-RUN npm run build
-
-
-FROM node:14-alpine
-# Installing libvips-dev for sharp Compatibility
-RUN apk add vips-dev
-RUN rm -rf /var/cache/apk/*
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
-WORKDIR /opt/app
-COPY --from=build /opt/node_modules ./node_modules
-ENV PATH /opt/node_modules/.bin:$PATH
-COPY --from=build /opt/app ./
-EXPOSE 80
-CMD ["npm", "run","start"]
-
-// v3/extensions/.gitkeep
-
-
-// v3/extensions/users-permissions/config/jwt.js
-module.exports = {
-  jwtSecret: process.env.JWT_SECRET || 'a1803bd0-d732-4687-bcdb-93be6f0bd1ba'
-};
-
-// v3/extensions/users-permissions/config/policies/userUpdate.js
-module.exports = async (ctx, next) => {
-    // If the user is an administrator we allow them to perform this action unrestricted
-    if (ctx.state.user.role.name === "Administrator") {
-      return next();
-    }
-    
-  
-    const { id: currentUserId } = ctx.state.user;
-    // If you are using MongoDB do not parse the id to an int!
-    const userToUpdate = Number.parseInt(ctx.params.id, 10);
-  
-    if (currentUserId !== userToUpdate) {
-      return ctx.unauthorized("Unable to edit this user ID");
-    }
-  
-    ctx.request.body.ip_address = ctx.req.socket._peername.address;
-    // Extract the fields regular users should be able to edit
-    const { first_name, last_name, biography, date_of_birth, gender, adult_content, ip_address } = ctx.request.body;
-  
-    console.log(ctx.request.body)
-    
-    // Provide custom validation policy here
-    //   if (first_name && first_name.trim() === "") {
-    //     return ctx.badRequest("first_name is required");
-    //   }
-  
-    // Setup the update object
-    const updateData = {
-        first_name,
-        last_name,
-        biography,
-        date_of_birth,
-        gender,
-        adult_content,
-        ip_address
-    };
-  
-    // remove properties from the update object that are undefined (not submitted by the user in the PUT request)
-    Object.keys(updateData).forEach((key) => updateData[key] === undefined && delete updateData[key]);
-    if(Object.keys(updateData).length === 0) {
-      return ctx.badRequest("No data submitted")
-    }
-  
-    ctx.request.body = updateData;
-    return next();
-  };
-  
-
-// v3/extensions/users-permissions/models/User.settings.json
+// src/extensions/users-permissions/content-types/user/schema.json
 {
   "kind": "collectionType",
-  "collectionName": "users-permissions_user",
+  "collectionName": "up_users",
   "info": {
     "name": "user",
-    "description": ""
+    "description": "",
+    "singularName": "user",
+    "pluralName": "users",
+    "displayName": "User"
   },
   "options": {
-    "draftAndPublish": false,
-    "timestamps": true
+    "draftAndPublish": false
   },
   "attributes": {
     "username": {
@@ -3018,17 +2375,20 @@ module.exports = async (ctx, next) => {
       "type": "password",
       "minLength": 6,
       "configurable": false,
-      "private": true
+      "private": true,
+      "searchable": false
     },
     "resetPasswordToken": {
       "type": "string",
       "configurable": false,
-      "private": true
+      "private": true,
+      "searchable": false
     },
     "confirmationToken": {
       "type": "string",
       "configurable": false,
-      "private": true
+      "private": true,
+      "searchable": false
     },
     "confirmed": {
       "type": "boolean",
@@ -3041,9 +2401,10 @@ module.exports = async (ctx, next) => {
       "configurable": false
     },
     "role": {
-      "model": "role",
-      "via": "users",
-      "plugin": "users-permissions",
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.role",
+      "inversedBy": "users",
       "configurable": false
     },
     "first_name": {
@@ -3058,147 +2419,495 @@ module.exports = async (ctx, next) => {
     "biography": {
       "type": "string"
     },
+    "safe_content_preference": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "moderate",
+      "required": true
+    },
+    "ip_address": {
+      "type": "string"
+    },
     "gender": {
       "type": "enumeration",
       "enum": [
         "male",
         "female"
       ],
-      "required": true,
-      "default": "male"
-    },
-    "adult_content": {
-      "type": "enumeration",
-      "enum": [
-        "show",
-        "hide"
-      ],
-      "default": "hide",
+      "default": "male",
       "required": true
-    },
-    "ip_address": {
-      "type": "string",
-      "private": true
-    },
-    "jokes": {
-      "private": true,
-      "collection": "jokes",
-      "via": "author"
-    },
-    "display_picture": {
-      "model": "file",
-      "via": "related",
-      "allowedTypes": [
-        "images"
-      ],
-      "plugin": "upload",
-      "required": false
-    },
-    "votes": {
-      "collection": "votes",
-      "via": "author"
     }
   }
 }
 
 
-// v3/package.json
-{
-  "name": "js-strapi-f-6-sny-backend",
-  "private": true,
-  "version": "1.1.0",
-  "description": "A Strapi application",
-  "scripts": {
-    "develop": "strapi develop",
-    "start": "strapi start",
-    "build": "strapi build",
-    "strapi": "strapi"
-  },
-  "dependencies": {
-    "knex": "0.21.18",
-    "mysql": "latest",
-    "slugify": "1.4.6",
-    "strapi": "3.6.9",
-    "strapi-admin": "3.6.9",
-    "strapi-connector-bookshelf": "3.6.9",
-    "strapi-plugin-comments": "1.0.4",
-    "strapi-plugin-content-manager": "3.6.9",
-    "strapi-plugin-content-type-builder": "3.6.9",
-    "strapi-plugin-email": "3.6.9",
-    "strapi-plugin-entity-relationship-chart": "3.1.0",
-    "strapi-plugin-meilisearch": "0.5.1",
-    "strapi-plugin-upload": "3.6.9",
-    "strapi-plugin-users-permissions": "3.6.9",
-    "strapi-utils": "3.6.9"
-  },
-  "author": {
-    "name": "Mohannad F. Otaibi"
-  },
-  "strapi": {
-    "uuid": "8524a2b0-1efd-4ec1-a733-13c3fdd510a7"
-  },
-  "engines": {
-    "node": ">=10.16.0 <=14.x.x",
-    "npm": ">=6.0.0"
-  },
-  "license": "MIT"
-}
+// src/index.ts
+import { Strapi } from '@strapi/strapi';
+
+export default {
+  /**
+   * An asynchronous register function that runs before
+   * your application is initialized.
+   *
+   * This gives you an opportunity to extend code.
+   */
+  register( { strapi }: { strapi: Strapi }) { 
+    //strapi.runLifecyclesFunctions('bootstrap');
+   },
 
 
-// v3/utilities/mfo_tools.js
-// entire file can be moved to globalcalls
+  /**
+   * An asynchronous bootstrap function that runs before
+   * your application gets started.
+   *
+   * This gives you an opportunity to set up your data model,
+   * run jobs, or perform some special logic.
+   */
+  bootstrap(/*{ strapi }*/) {},
+};
 
-const clean_adult_content = (jokes_array,adult_selection) => {
-    if(!adult_selection){
-        jokes_array = jokes_array.filter(elem => {
-            let visibile = true;
-    
-			elem.tags.forEach(element => {
-				if(element.adult_content) {
-                    visibile = false;
-                    return;
-                }
+
+// src/utilities/clean_database.ts
+namespace JokesDatabaseCleaner {
+	const mysql = require("mysql2/promise");
+	const prompts = require("prompts");
+	const arabicString = require("@6degrees/arabic-strings");
+	require("colors");
+
+	require("dotenv").config();
+
+	require("util").inspect.defaultOptions.depth = 1;
+
+	var pool1 = mysql.createPool({
+		connectionLimit: 300,
+		host: process.env.DATABASE_HOST_OLD,
+		user: process.env.DATABASE_USERNAME_OLD,
+		password: process.env.DATABASE_PASSWORD_OLD,
+		database: process.env.DATABASE_NAME_OLD,
+	});
+
+	let my_sql_pool_connection;
+
+	async function clean() {
+		my_sql_pool_connection = await pool1.getConnection();
+
+		try {
+			// Clean joke slugs
+			await clean_slugs();
+		} catch (error) {
+			console.error(error);
+		}
+
+		console.log("reached here");
+		my_sql_pool_connection.release();
+		process.exit(0);
+	}
+
+	async function clean_slugs() {
+		const characters = "ًٌٍَُِِّْے~!@#$?؟ہ^!";
+
+		let result = await my_sql_pool_connection.query(
+			`SELECT * FROM jokes where slug REGEXP '[${characters}]';`
+		);
+
+		if (Array.isArray(result[0]) && result[0].length > 0) {
+			// we got results, lets loop through for bunches of CHUNK_SIZE and prompt for cleaning
+
+			let response = await prompts({
+				type: "confirm",
+				name: "value",
+				message: `Found ${result[0].length}  results, do you want to see them ?`,
+				initial: true,
 			});
-                  
-            if(!visibile) return undefined;
-            else return elem;
-          })
-    }
-    return jokes_array;
-};
 
-async function filter_array(arr, callback) {
-	const fail = Symbol()
-	return (await Promise.all(arr.map(async item => (await callback(item)) ? item : fail))).filter(i=>i!==fail)
+			if (response.value == true) {
+				const CHUNK_SIZE = 100;
+				const chunked_array = chunkArray(result[0], CHUNK_SIZE);
+
+				// loop through the chunks
+				for (const group of chunked_array) {
+					// loop through the chunk and show original and fix, then prompt the user for fix
+					let fixed_jokes_slugs_array = [];
+					
+					for (const item of group) {
+						let string_to_clean = item.slug;
+						string_to_clean = arabicString.sanitize(string_to_clean);
+						string_to_clean = arabicString.removeNonArabic(string_to_clean,"-");
+						string_to_clean = string_to_clean.replace("--", "-");
+						fixed_jokes_slugs_array.push({
+							id: item.id,
+							slug: string_to_clean,
+						});
+
+						console.log(item.slug + "\t" + string_to_clean.green);
+					}
+
+					let fix_slug_response = await prompts({ 
+						type: "confirm",
+						name: "value",
+						message: `do you want to fix them ??`,
+						initial: true,
+					});
+
+					if (fix_slug_response.value == true) {
+						console.log(
+							"oh my god, you want to fix them 👀, ok, we will do it for you, hang tight"
+						);
+						//console.log(fixed_jokes_slugs_array[0]);
+						await updateRecords('jokes',fixed_jokes_slugs_array);
+
+
+						let continue_fix_slug_response = await prompts({
+							type: "confirm",
+							name: "value",
+							message: `shall we continue or stop ??`,
+							initial: true,
+						});
+
+						if (continue_fix_slug_response.value == false) {break;}
+					} else {
+						console.log("I hope you are sure about this");
+					}
+				}
+			}
+		} else {
+			console.log("found nothing, moving to next check");
+		}
+	}
+
+	function chunkArray(arr, CHUNK_SIZE) {
+		let return_array = [];
+
+		for (let i = 0; i < arr.length; i += CHUNK_SIZE) {
+			const chunk = arr.slice(i, i + CHUNK_SIZE);
+			return_array.push(chunk);
+		}
+
+		return return_array;
+	}
+
+	async function updateRecords(table_name, records) {	
+		for (const record of records) {
+			const record_id = record.id;
+			console.log(`Fixing ${table_name} record ${record_id}`)
+			delete record.id;
+			try {
+				let result = await my_sql_pool_connection.query(
+					`UPDATE ${table_name} SET ? WHERE id = ?`,
+					[record, record_id]
+				);
+			} catch (error) {
+				console.log('couldnt update it, an error occured', error.message.red)
+				continue;
+			}
+			
+		}
+	}
+
+	clean();
 }
 
-const slug = require('slugify');
 
-const strip_tags_and_new_lines = (text) => {
-  if (!text) return false;
-  text = text.toString();
-  return text.replace(/<\/?[^>]+>|[\r\n]/g, '');
-};
+// src/utilities/migrate_db.ts
+namespace JokesDatabaseCleaner {
+	var mysql = require("mysql2/promise");
+	require('dotenv').config();
 
-const shorten = (text, maxLen, separator = ' ') => {
-  if (text.length <= maxLen) return str;
-  if (typeof separator !== 'string' || separator.length === 0) {
-      throw new Error('Invalid separator argument: must be a non-empty string');
-  }
-  return text.substr(0, text.lastIndexOf(separator, maxLen));
-};
+	require('util').inspect.defaultOptions.depth = 1;
+	//console.log(process.env);
+	var pool1 = mysql.createPool({
+		connectionLimit: 300,
+		host: process.env.DATABASE_HOST_OLD,
+		user: process.env.DATABASE_USERNAME_OLD,
+		password: process.env.DATABASE_PASSWORD_OLD,
+		database: process.env.DATABASE_NAME_OLD,
+	});
 
-const allowed_characters_regex = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
+	var pool2 = mysql.createPool({
+		connectionLimit: 300,
+		host: process.env.DATABASE_HOST,
+		user: process.env.DATABASE_USERNAME,
+		password: process.env.DATABASE_PASSWORD,
+		database: process.env.DATABASE_NAME,
+	});
 
-const generate_slug = (text) =>{
-  slug = strip_tags_and_new_lines(text);
-  slug = slug.replace(/ +(?= )/g,'');
-  slug = slug.trim();
-  slug = slug.replace("يقول لك","");
-  slug = slug.replace(allowed_characters_regex, "");
-  slug = slug.trim();
-  slug = shorten(slug, 50).trim().replace(/[" "]/g, "-");
-  return slug
-};
+	let connection_1, connection_2;
 
-module.exports = { generate_slug, clean_adult_content, filter_array };
+	async function migrateData() {
+		connection_1 = await pool1.getConnection();
+		connection_2 = await pool2.getConnection();
+
+		try {
+			let data: any = {};
+
+			// GET DATA
+			data.tags = await connection_1.query("SELECT * FROM tags");
+			data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");
+			data.pages = await connection_1.query("SELECT * FROM pages");
+			data.comments = await connection_1.query("SELECT * FROM comments");
+			data.votes = await connection_1.query("SELECT * FROM votes");
+			data.jokes = await connection_1.query("SELECT * FROM jokes");
+			data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
+			data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
+			data.comments_comment_author_user_links = [];
+			data.users_roles = [];
+			data.votes_authors = [];
+			data.jokes_authors = [];
+
+			// fix jokes parameters
+			data.jokes[0] = data.jokes[0].map((joke) => {
+				data.jokes_authors.push({
+					joke_id: joke.id,
+					user_id: joke.created_by,
+				});
+
+				renameObjectProperty(joke, "created_by", "created_by_id");
+				renameObjectProperty(joke, "updated_by", "updated_by_id");
+				joke.created_by_id = 1;
+				joke.updated_by_id = 1;
+
+				delete joke.author;
+				return joke;
+			});
+
+			// fix user parameters
+			data.users[0] = data.users[0].map((user) => {
+				data.users_roles.push({
+					user_id: user.id,
+					role_id: user.role
+				})
+
+				delete user.role;
+
+				if (user.adult_content == 'hide') {
+					user.adult_content = 'moderate';
+				} else {
+					user.adult_content = 'open';
+				}
+
+				renameObjectProperty(user, "resetPasswordToken", "reset_password_token");
+				renameObjectProperty(user, "created_by", "created_by_id");
+				renameObjectProperty(user, "updated_by", "updated_by_id");
+				renameObjectProperty(user, "confirmationToken", "confirmation_token");
+				renameObjectProperty(user, "adult_content", "safe_content_preference");
+
+				return user;
+			})
+
+			// fix comments complicated
+			data.comments[0] = data.comments[0].map((comment) => {
+				if (comment.authorUser) {
+					data.comments_comment_author_user_links.push({
+						user_id: comment.authorUser,
+						comment_id: comment.id
+					})
+				}
+
+				renameObjectProperty(comment, "authorName", "author_name");
+				renameObjectProperty(comment, "authorEmail", "author_email");
+				renameObjectProperty(comment, "authorAvatar", "author_avatar");
+				renameObjectProperty(comment, "created_by", "created_by_id");
+				renameObjectProperty(comment, "updated_by", "updated_by_id");
+				renameObjectProperty(comment, "approvalStatus", "approval_status");
+
+				comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
+				delete comment.relatedSlug;
+				delete comment.blockedThread;
+				delete comment.blockReason;
+				delete comment.points;
+				delete comment.authorUser;
+				delete comment.authorType;
+				delete comment.authorId;
+				delete comment.threadOf;
+				delete comment.author;
+
+				return comment;
+			})
+
+			// fix tags
+			data.tags[0] = data.tags[0].map((tag) => {
+				if (tag.adult_content == 'hide') {
+					tag.adult_content = 'moderate';
+				} else {
+					tag.adult_content = 'open';
+				}
+
+				renameObjectProperty(tag, "adult_content", "safe_content_preference");
+				renameObjectProperty(tag, "created_by", "created_by_id");
+				renameObjectProperty(tag, "updated_by", "updated_by_id");
+
+				return tag;
+			})
+
+			// fix pages
+			data.pages[0] = data.pages[0].map((page) => {
+				renameObjectProperty(page, "created_by", "created_by_id");
+				renameObjectProperty(page, "updated_by", "updated_by_id");
+
+				return page;
+			})
+
+			// fix votes
+			data.votes[0] = data.votes[0].map((vote) => {
+				if (vote.author) {
+					data.votes_authors.push({
+						vote_id: vote.id,
+						user_id: vote.author
+					})
+				}
+				else if (vote.created_by != 1) {
+					data.votes_authors.push({
+						vote_id: vote.id,
+						user_id: vote.created_by
+					})
+				}
+
+				delete vote.author;
+
+				renameObjectProperty(vote, "created_by", "created_by_id");
+				renameObjectProperty(vote, "updated_by", "updated_by_id");
+
+				vote.created_by_id = 1;
+				vote.updated_by_id = 1;
+
+				return vote;
+			})
+
+			console.log(`
+got:
+	${data.jokes[0].length} jokes, 
+	${data.tags[0].length} tags, 
+	${data.users[0].length} users, 
+	${data.comments[0].length} comments
+	${data.votes[0].length} votes
+	${data.pages[0].length} pages`
+			);
+
+			// clear bfore insert
+			await resetTablesContent();
+			//await chunkAndRun(data.pages[0], 200, "pages");
+			//await chunkAndRun(data.users[0], 400, "up_users");
+			//await chunkAndRun(data.tags[0], 200, "tags");
+			//await chunkAndRun(data.jokes[0], 200, "jokes");
+			//await chunkAndRun(data.votes[0], 200, "votes");
+
+			//await chunkAndRun(data.jokes_authors,300,"jokes_author_links");
+			await chunkAndRun(data.jokes_tags[0], 200, "jokes_tags_links");
+			await chunkAndRun(data.jokes_votes[0], 200, "jokes_votes_links");
+			await chunkAndRun(data.users_roles, 400, "up_users_role_links");
+			await chunkAndRun(data.votes_authors, 200, "votes_author_links");
+
+			await chunkAndRun(data.comments[0], 400, "comments_comment");
+			await chunkAndRun(data.comments_comment_author_user_links, 200, "comments_comment_author_user_links");
+
+			console.log("finished first insert batch");
+
+		}
+		catch (error) {
+			console.error(error);
+		}
+	}
+
+	async function chunkAndRun(array: Array<any>, chunk_size: number, table_name: string, reset_table_content: boolean = false) {
+
+		if (reset_table_content) {
+			resetTablesContent(table_name);
+		}
+
+		connection_1 = await pool1.getConnection();
+		connection_2 = await pool2.getConnection();
+		const sql_statement = `INSERT INTO ${table_name} SET ?`;
+		console.log("executing " + sql_statement);
+
+
+		let promise_group = array.map((data) => connection_2.query(sql_statement, data));
+
+		let return_array = [];
+
+		for (let i = 0; i < promise_group.length; i += chunk_size) {
+			const chunk = promise_group.slice(i, i + chunk_size);
+			return_array.push(chunk);
+		}
+
+		let count = 1;
+
+		for (const item of return_array) {
+			console.log(`inserting batch ${count}/${return_array.length}`);
+			const insertResults = await Promise.all(item);
+			count++;
+		}
+
+		// Kill connections
+		connection_1.release();
+		connection_2.release();
+	}
+
+	function renameObjectProperty(obj, oldProperty, newProperty) {
+
+		Object.defineProperty(
+			obj,
+			newProperty,
+			Object.getOwnPropertyDescriptor(obj, oldProperty)
+		);
+		delete obj[oldProperty];
+
+	}
+
+	async function resetTablesContent(table_name = '') {
+		const database_tables = [
+			//'pages',
+			//'up_users',
+			//'tags',
+			//	'jokes',
+			//	'votes',
+			//	'jokes_author_links',
+			'jokes_tags_links',
+			'jokes_votes_links',
+			'up_users_role_links',
+			'votes_author_links',
+			'comments_comment',
+			'comments_comment_author_user_links',
+		];
+
+		await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
+
+		for (const table of database_tables) {
+			await connection_2.query(`Truncate table ${table}`);
+		}
+
+		await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");
+	}
+
+	migrateData();
+}
+
+
+// tsconfig.json
+{
+  "extends": "@strapi/typescript-utils/tsconfigs/server",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": ".",
+    "allowJs": true
+  },
+  "include": [
+    "./",
+    "./**/*.ts",
+    "./**/*.js",
+    "src/**/*.json"
+  ],
+  "exclude": [
+    "node_modules/",
+    "build/",
+    "dist/",
+    ".cache/",
+    ".tmp/",
+    "src/admin/",
+    "**/*.test.*",
+    "src/plugins/**"
+  ]
+}

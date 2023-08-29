@@ -1,7 +1,7 @@
 {
-  "name": "f-6-sny-v-4",
-  "private": true,
-  "version": "0.1.0",
+  "name": "f6sny",
+  "private": false,
+  "version": "4.0.0",
   "description": "A Strapi application",
   "scripts": {
     "develop": "strapi develop",
@@ -22,7 +22,7 @@
     "strapi-plugin-passwordless": "^4.0.9"
   },
   "author": {
-    "name": "A Strapi developer"
+    "name": "Mohannad F. Otaibi"
   },
   "strapi": {
     "uuid": "815529dd-ea1d-434c-a483-b13a541c6060"

@@ -1,23 +1,31 @@
-export default {
-    async getCounters(ctx) {
-		const counters = {
-			total_jokes: 	await strapi.query('api::joke.joke').count({...ctx.query}),
-			deleted_jokes: 	await strapi.query('api::joke.joke').count({status: 'deleted'}),
-			comments: 		await strapi.query('plugin::comments.comment').count({...ctx.query}),
-			users: 			await strapi.query('plugin::users-permissions.user').count({...ctx.query}),
-			pending_jokes: 	await strapi.service('api::joke.joke').countPending(ctx),
-			//members: await strapi. strapi.services.users.count({...ctx.query}),
-			visits: 0,
+import { factories } from '@strapi/strapi';
+import { Context } from "koa";
+
+export default factories.createCoreController('api::globalcall.globalcall', ({ strapi }) =>  ({
+	async getCounters(ctx: Context) {
+		try {
+			const counters = {
+				total_jokes: 	await strapi.query('api::joke.joke').count({...ctx.query}),
+				deleted_jokes: 	await strapi.query('api::joke.joke').count({status: 'deleted'}),
+				comments: 		await strapi.query('plugin::comments.comment').count({...ctx.query}),
+				users: 			await strapi.query('plugin::users-permissions.user').count({...ctx.query}),
+				pending_jokes: 	await strapi.service('api::joke.joke').countPending(ctx),
+				//members: await strapi. strapi.services.users.count({...ctx.query}),
+				visits: 0,
+			}
+			return counters;
+		} catch (error) {
+			ctx.body = error;
 		}
-		return counters;
 	},
 
-	async getLatestComments(ctx) {
-		let entities;
+	async getLatestComments(ctx: Context) {
+		try {
+			let entities;
 		ctx.query = {
 			...ctx.query,
-			_limit: 30,
-			_sort: "id:DESC",		
+			limit: '30',
+			sort: 'id:desc' ,		
 			// TODO: add one for status later, to filter out blocked or not active comments
 			};
 
@@ -43,9 +51,13 @@ export default {
   
 		//console.log(entities[0])
 		return entities.slice(0,10);
+		} catch (error) {
+			
+		}
 	},
   
-	async updateProfile(ctx){
+	async updateProfile(ctx: Context){
 		return;
 	}
-}
+}));
+
