@@ -1,7 +1,7 @@
 import { factories } from '@strapi/strapi'; 
 import { Context } from "koa";
 
-export default factories.createCoreService('api::restaurant.restaurant', ({ strapi }) =>  ({
+export default factories.createCoreService('api::globalcall.globalcall', ({ strapi }) =>  ({
     
     async isAdultJoke(joke_id: number){
         // get the joke object

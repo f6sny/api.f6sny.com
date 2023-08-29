@@ -10,7 +10,12 @@ export default factories.createCoreController('api::joke.joke', {
         const limit = parseInt(Array.isArray(ctx.query.limit) ? ctx.query.limit[0] : ctx.query.limit) || strapi.config.get('api.rest.defaultLimit', 25);
         const start = parseInt(Array.isArray(ctx.query.start) ? ctx.query.start[0] : ctx.query.start) || 0;
     
-        const entities = await strapi.entityService.findMany('api::joke.joke', { ...ctx.query, limit, start, populate: ['votes', 'tags'],});
+        const entities = await strapi.entityService.findMany('api::joke.joke', { 
+          ...ctx.query, 
+          limit: limit, 
+          start: start, 
+          populate: ['votes', 'tags'],
+        });
 
         return entities;
       },
