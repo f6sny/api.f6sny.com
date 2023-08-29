@@ -1,5 +1,3 @@
-const { filter_array } = require('../../../utilities/mfo_tools')
-
 export default {
     async getCounters(ctx) {
 		const counters = {
@@ -30,24 +28,21 @@ export default {
 		}
 
 		// remove deleted jokes and adult content
-		entities = await filter_array(entities, async element => {
-			let keep = true;
-			if(element.related[0].status == 'deleted'){
-				keep = false;
+		// Get an array of promises based on your conditions
+		const results = await Promise.all(entities.map(async element => {
+			if (element.related[0].status === 'deleted') {
+			return false;
 			}
 			
-			let is_adult_joke = await strapi.service('api::globalcall.globalcall').isAdultJoke(element.related[0].id);
-			if(is_adult_joke){
-				console.log("is adult")
-				keep = false;
-			}
-
-			return keep;
-		})
-
+			const is_adult_joke = await strapi.service('api::globalcall.globalcall').isAdultJoke(element.related[0].id);
+			return !is_adult_joke;
+		}));
+		
+		// Filter the original array based on the resolved promises
+		entities = entities.filter((_, index) => results[index]);
+  
 		//console.log(entities[0])
 		return entities.slice(0,10);
-
 	},
   
 	async updateProfile(ctx){

@@ -13,14 +13,28 @@ export default {
         return is_adult_joke;
     },
 
-    clean_arabic(string){
-        return;
+    
+    generate_slug(text) {
+        const ALLOWED_CHARACTERS_REGEX = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
+        const TAGS_REGEX = /<\/?[^>]+>|[\r\n]/g;
+        const SOME_REGEX = / +(?= )/g;
+        const strip_tags_and_new_lines = (text) => {
+            return text?.toString().replace(TAGS_REGEX, '') || false;
+        }
+        const shorten = (text, maxLen, separator = ' ') => {
+            if (text.length <= maxLen) return text;
+            if (!separator) throw new Error('Invalid separator: must be a non-empty string');
+            return text.substr(0, text.lastIndexOf(separator, maxLen));
+        }
+
+        text = strip_tags_and_new_lines(text) || '';
+        text = text.replace(SOME_REGEX, '').trim();
+        text = text.replace("يقول لك", "").replace(ALLOWED_CHARACTERS_REGEX, "").trim();
+        return shorten(text, 50).trim().replace(/ /g, "-");
     },
 
     clean_adult_content(jokes_array : any[], adult_selection : boolean) {
-        console.log("clean_adult_content", adult_selection)
-        console.log(jokes_array[0])
-        
+     
         if(!adult_selection){
             jokes_array = jokes_array.filter(element => {
                 let visibile = true;

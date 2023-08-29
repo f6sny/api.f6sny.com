@@ -1,6 +1,6 @@
 version: '3.4'
 services:
-  api_f6sny_com:
+  api:
     build:
       context: .
     environment:

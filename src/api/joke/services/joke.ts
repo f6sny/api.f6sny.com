@@ -92,7 +92,7 @@ export default factories.createCoreService('api::joke.joke', {
 
   //   const entities = ctx.query._q ? await strapi.services.jokes.search(query) : await strapi.services.jokes.find(query);
 
-  //   const cleanedEntities = strapi.services.globalcalls.clean_adult_content(entities, 0);
+  //   const cleanedEntities = clean_adult_content(entities, 0);
 
   //   return cleanedEntities.length;
   // }
