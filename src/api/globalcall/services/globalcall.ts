@@ -1,9 +1,8 @@
-import { factories } from '@strapi/strapi'; 
+import { factories } from '@strapi/strapi';
 import { Context } from "koa";
 
-export default factories.createCoreService('api::globalcall.globalcall', ({ strapi }) =>  ({
-    
-    async isAdultJoke(joke_id: number){
+export default {
+    async isAdultJoke(joke_id: number) {
         // get the joke object
         let is_adult_joke = false;
         let joke = await strapi.services.jokes.findOne({id: joke_id});
@@ -17,7 +16,6 @@ export default factories.createCoreService('api::globalcall.globalcall', ({ stra
         return is_adult_joke;
     },
 
-    
     generate_slug(text: string) {
         const ALLOWED_CHARACTERS_REGEX = /[^- \\\\1234567890أبجدهوزحطيكلمنسعفصقرشتثخذضظغلاإآؤئءىةاabcdefghijklmnopqrstuvwxyz.\\+!#\\?]/g;
         const TAGS_REGEX = /<\/?[^>]+>|[\r\n]/g;
@@ -37,8 +35,7 @@ export default factories.createCoreService('api::globalcall.globalcall', ({ stra
         return shorten(text, 50).trim().replace(/ /g, "-");
     },
 
-    clean_adult_content(jokes_array : any[], adult_selection : boolean) {
-     
+    clean_adult_content(jokes_array: any[], adult_selection: boolean) {
         if(!adult_selection){
             jokes_array = jokes_array.filter(element => {
                 let visibile = true;
@@ -56,5 +53,4 @@ export default factories.createCoreService('api::globalcall.globalcall', ({ stra
         }
         return jokes_array;
     }
-
-}));
+};

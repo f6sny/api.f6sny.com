@@ -11,15 +11,18 @@
   },
   "dependencies": {
     "@6degrees/arabic-strings": "^1.0.1",
-    "@strapi/plugin-i18n": "4.10.5",
-    "@strapi/plugin-users-permissions": "4.10.5",
-    "@strapi/strapi": "4.10.5",
+    "@strapi/plugin-i18n": "4.15.5",
+    "@strapi/plugin-users-permissions": "4.15.5",
+    "@strapi/strapi": "4.15.5",
     "colors": "^1.4.0",
     "mysql": "^2.18.1",
     "mysql2": "^3.3.2",
     "prompts": "^2.4.2",
-    "strapi-plugin-comments": "^2.2.10",
-    "strapi-plugin-passwordless": "^4.0.9"
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^5.2.0",
+    "strapi-plugin-passwordless": "^4.0.15",
+    "styled-components": "^5.2.1"
   },
   "author": {
     "name": "Mohannad F. Otaibi"
@@ -31,5 +34,6 @@
     "node": ">=14.19.1 <=18.x.x",
     "npm": ">=6.0.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }

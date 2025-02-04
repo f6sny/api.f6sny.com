@@ -1,29 +1,65 @@
-/**
- * tag controller
- */
-
 import { factories } from '@strapi/strapi'
+import { Context } from "koa";
 
-export default factories.createCoreController('api::tag.tag');
+export default factories.createCoreController('api::tag.tag', ({ strapi }) => ({
+  async find(ctx) {
+    const defaultJokesPopulate = {
+      count: true,
+      filters: { status: 'active' } // default filter
+    };
 
-// const { sanitizeEntity } = require("strapi-utils");
+    // Get any client-provided configuration
+    const clientJokesPopulate = ctx.query.populate?.jokes || {};
 
-// module.exports = {
-// 	async find(ctx) {
+    ctx.query.populate = {
+      ...ctx.query.populate,
+      jokes: {
+        ...defaultJokesPopulate,
+        ...clientJokesPopulate,
+        // Ensure that if the client has defined filters, we use them;
+        // otherwise, we fall back to our default filters.
+        filters: clientJokesPopulate.hasOwnProperty('filters')
+          ? clientJokesPopulate.filters
+          : defaultJokesPopulate.filters
+      }
+    };
 
-// 		ctx.query = { ...ctx.query, adult_content: false, };
+    const { data, meta } = await super.find(ctx);
+    return { data, meta };
+  },
 
-// 		const result = await strapi.query('tag').find(ctx.query);
-// 		let maxJokes = 0;
-// 		result.forEach((tag) => {
-// 			if (tag.jokes.length > maxJokes) {
-// 			  maxJokes = tag.jokes.length;
-// 			}
-		
-// 			tag.jokes = tag.jokes.length;
-// 			tag.jokes_max = maxJokes;
-// 		  });
+  async findOne(ctx) {
+    const defaultJokesPopulate = {
+      count: true,
+      filters: { status: 'active' }
+    };
 
-// 		  return sanitizeEntity(result, { model: strapi.models.tag });
-// 	},
-// };
+    const clientJokesPopulate = ctx.query.populate?.jokes || {};
+
+    ctx.query.populate = {
+      ...ctx.query.populate,
+      jokes: {
+        ...defaultJokesPopulate,
+        ...clientJokesPopulate,
+        filters: clientJokesPopulate.hasOwnProperty('filters')
+          ? clientJokesPopulate.filters
+          : defaultJokesPopulate.filters
+      }
+    };
+
+    ctx.query.select = ['name', 'adult_content', 'createdAt', 'updatedAt'];
+
+    const entity = await super.findOne(ctx);
+    return {
+      ...entity,
+      data: {
+        ...entity.data,
+        attributes: {
+          ...entity.data.attributes,
+          jokeCount: entity.data.attributes.jokes?.count || 0,
+          jokes: undefined // remove full jokes data if count exists
+        }
+      }
+    };
+  }
+}));
