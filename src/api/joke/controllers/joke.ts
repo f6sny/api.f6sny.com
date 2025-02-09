@@ -21,8 +21,9 @@ export default factories.createCoreController('api::joke.joke', ({ strapi }) => 
     
     async findOne(ctx: Context) {
         const { id } = ctx.params;
-        const entity = await strapi.entityService.findOne('api::joke.joke', id, {
-            populate: ['votes', 'tags',  'author', 'createdBy', 'updatedBy'],
+        const entity = await strapi.documents('api::joke.joke').findOne({
+            documentId: id,
+            populate: ['votes', 'tags',  'author', 'createdBy', 'updatedBy']
         });
         return entity;
     },

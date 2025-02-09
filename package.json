@@ -12,15 +12,14 @@
   },
   "dependencies": {
     "@6degrees/arabic-strings": "^1.0.1",
-    "@strapi/plugin-i18n": "4.25.20",
-    "@strapi/plugin-users-permissions": "4.25.20",
-    "@strapi/strapi": "4.25.20",
+    "@strapi/plugin-users-permissions": "5.9.0",
+    "@strapi/strapi": "5.9.0",
     "mysql2": "^3.3.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-router-dom": "^5.2.0",
+    "react-router-dom": "^6.0.0",
     "strapi-plugin-passwordless": "^4.0.15",
-    "styled-components": "^5.2.1"
+    "styled-components": "^6.0.0"
   },
   "author": {
     "name": "Mohannad F. Otaibi"
