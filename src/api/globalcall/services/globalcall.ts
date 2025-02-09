@@ -39,7 +39,7 @@ export default {
         if(!adult_selection){
             jokes_array = jokes_array.filter(element => {
                 let visibile = true;
-                console.log(element);
+                //console.log(element);
                 element.tags.forEach(tag => {
                     if(tag.adult_content) {
                         visibile = false;

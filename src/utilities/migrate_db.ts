@@ -1,11 +1,44 @@
 namespace JokesDatabaseCleaner {
+	// Configuration options
+	const CONFIG = {
+		CHUNK_SIZE: 50, // Single chunk size for all operations
+		DATABASE: {
+			connectionLimit: 300,
+			tables: [
+				'pages',
+				'up_users',
+				'tags',
+				'jokes',
+				'votes',
+				'jokes_author_links',
+				'jokes_tags_links',
+				'jokes_votes_links',
+				'up_users_role_links',
+				'votes_author_links',
+				// 'comments', // To be migrated in the future
+				// 'comments_comment_author_user_links', // To be migrated in the future
+			]
+		},
+		PROGRESS_BAR: {
+			format: '|{bar}| {percentage}% | {value}/{total} records | Batch: {batch}',
+			barCompleteChar: '\u2588',
+			barIncompleteChar: '\u2591',
+			clearOnComplete: false,
+			hideCursor: true
+		}
+	};
+
+	// Dependencies
 	var mysql = require("mysql2/promise");
 	require('dotenv').config();
+	const chalk = require('chalk');
+	const cliProgress = require('cli-progress');
+	const Table = require('cli-table3');
 
 	require('util').inspect.defaultOptions.depth = 1;
 	//console.log(process.env);
 	var pool1 = mysql.createPool({
-		connectionLimit: 300,
+		connectionLimit: CONFIG.DATABASE.connectionLimit,
 		host: process.env.DATABASE_HOST_OLD,
 		user: process.env.DATABASE_USERNAME_OLD,
 		password: process.env.DATABASE_PASSWORD_OLD,
@@ -13,7 +46,7 @@ namespace JokesDatabaseCleaner {
 	});
 
 	var pool2 = mysql.createPool({
-		connectionLimit: 300,
+		connectionLimit: CONFIG.DATABASE.connectionLimit,
 		host: process.env.DATABASE_HOST,
 		user: process.env.DATABASE_USERNAME,
 		password: process.env.DATABASE_PASSWORD,
@@ -21,27 +54,109 @@ namespace JokesDatabaseCleaner {
 	});
 
 	let connection_1, connection_2;
+	let multibar: any = null;
+
+	// Add color mapping for tables
+	const tableColors = {
+		'pages': chalk.cyan,
+		'up_users': chalk.magenta,
+		'tags': chalk.yellow,
+		'jokes': chalk.blue,
+		'votes': chalk.red,
+		'jokes_author_links': chalk.greenBright,
+		'jokes_tags_links': chalk.blueBright,
+		'jokes_votes_links': chalk.magentaBright,
+		'up_users_role_links': chalk.yellowBright,
+		'votes_author_links': chalk.cyanBright,
+	};
+
+	// Helper function to get color for table
+	function getTableColor(tableName: string) {
+		return tableColors[tableName] || chalk.white;
+	}
+
+	async function displayDataSummary(data: any) {
+		const table = new Table({
+			head: [
+				chalk.white.bold('Content Type'), 
+				chalk.white.bold('Count'),
+				chalk.white.bold('Status')
+			],
+			style: {
+				head: [], // Disable colors for header background
+				border: [] // Disable colors for borders
+			}
+		});
+
+		const summaryData = [
+			['Jokes', data.jokes[0].length, getTableColor('jokes')('Ready')],
+			['Tags', data.tags[0].length, getTableColor('tags')('Ready')],
+			['Users', data.users[0].length, getTableColor('up_users')('Ready')],
+			['Comments', data.comments[0].length, chalk.gray('Not migrated')],
+			['Votes', data.votes[0].length, getTableColor('votes')('Ready')],
+			['Pages', data.pages[0].length, getTableColor('pages')('Ready')]
+		];
+
+		// Add rows with their respective colors
+		summaryData.forEach(([type, count, status]) => {
+			table.push([
+				getTableColor(type.toLowerCase())(type),
+				count.toString().padStart(6),
+				status
+			]);
+		});
+
+		console.log('\nMigration Data Summary:');
+		console.log(table.toString());
+		console.log(); // Add empty line after table
+	}
 
 	async function migrateData() {
-		connection_1 = await pool1.getConnection();
-		connection_2 = await pool2.getConnection();
-
 		try {
-			let data: any = {};
+			// Use connection pooling more efficiently by getting connections once
+			const [connection1, connection2] = await Promise.all([
+				pool1.getConnection(),
+				pool2.getConnection()
+			]);
 
-			// GET DATA
-			data.tags = await connection_1.query("SELECT * FROM tags");
-			data.users = await connection_1.query("SELECT * FROM `users-permissions_user`");
-			data.pages = await connection_1.query("SELECT * FROM pages");
-			data.comments = await connection_1.query("SELECT * FROM comments");
-			data.votes = await connection_1.query("SELECT * FROM votes");
-			data.jokes = await connection_1.query("SELECT * FROM jokes");
-			data.jokes_votes = await connection_1.query("SELECT * FROM jokes__votes");
-			data.jokes_tags = await connection_1.query("SELECT * FROM jokes_tags__tags_jokes");
-			data.comments_comment_author_user_links = [];
-			data.users_roles = [];
-			data.votes_authors = [];
-			data.jokes_authors = [];
+			connection_1 = connection1;
+			connection_2 = connection2;
+
+			// Fetch data concurrently
+			const [
+				[tags], 
+				[users], 
+				[pages], 
+				[comments], // Keep fetching comments data
+				[votes], 
+				[jokes],
+				[jokesVotes],
+				[jokesTags]
+			] = await Promise.all([
+				connection_1.query("SELECT * FROM tags"),
+				connection_1.query("SELECT * FROM `users-permissions_user`"),
+				connection_1.query("SELECT * FROM pages"),
+				connection_1.query("SELECT * FROM comments"), // Keep this query
+				connection_1.query("SELECT * FROM votes"),
+				connection_1.query("SELECT * FROM jokes"),
+				connection_1.query("SELECT * FROM jokes__votes"),
+				connection_1.query("SELECT * FROM jokes_tags__tags_jokes")
+			]);
+
+			const data = {
+				tags: [tags],
+				users: [users],
+				pages: [pages],
+				comments: [comments], // Keep this in data object
+				votes: [votes],
+				jokes: [jokes],
+				jokes_votes: [jokesVotes],
+				jokes_tags: [jokesTags],
+				comments_comment_author_user_links: [], // Keep this for future
+				users_roles: [],
+				votes_authors: [],
+				jokes_authors: []
+			};
 
 			// fix jokes parameters
 			data.jokes[0] = data.jokes[0].map((joke) => {
@@ -162,109 +277,137 @@ namespace JokesDatabaseCleaner {
 				return vote;
 			})
 
-			console.log(`
-got:
-	${data.jokes[0].length} jokes, 
-	${data.tags[0].length} tags, 
-	${data.users[0].length} users, 
-	${data.comments[0].length} comments
-	${data.votes[0].length} votes
-	${data.pages[0].length} pages`
-			);
+			// Display data summary first
+			await displayDataSummary(data);
 
-			// clear bfore insert
+			// Reset tables
+			console.log('\nResetting Tables Content');
 			await resetTablesContent();
-			//await chunkAndRun(data.pages[0], 200, "pages");
-			//await chunkAndRun(data.users[0], 400, "up_users");
-			//await chunkAndRun(data.tags[0], 200, "tags");
-			//await chunkAndRun(data.jokes[0], 200, "jokes");
-			//await chunkAndRun(data.votes[0], 200, "votes");
 
-			//await chunkAndRun(data.jokes_authors,300,"jokes_author_links");
-			await chunkAndRun(data.jokes_tags[0], 200, "jokes_tags_links");
-			await chunkAndRun(data.jokes_votes[0], 200, "jokes_votes_links");
-			await chunkAndRun(data.users_roles, 400, "up_users_role_links");
-			await chunkAndRun(data.votes_authors, 200, "votes_author_links");
+			// Initialize multibar
+			multibar = new cliProgress.MultiBar({
+				...CONFIG.PROGRESS_BAR,
+				format: '{contentType} {bar} {percentage}% | {value}/{total} | Batch: {batch} | Chunk: {chunkSize}'
+			}, {
+				align: 'left',
+				borderChar: '│',
+				stream: process.stdout,
+				linewrap: false,
+			});
 
-			await chunkAndRun(data.comments[0], 400, "comments_comment");
-			await chunkAndRun(data.comments_comment_author_user_links, 200, "comments_comment_author_user_links");
+			// Group 1: Base tables
+			console.log('\nMigrating Base Tables:');
+			console.log('Content Type          Progress                                    Stats                  Batch Info');
+			console.log('─'.repeat(100));
+			
+			await Promise.all([
+				chunkAndRun(data.pages[0], "pages"),
+				chunkAndRun(data.users[0], "up_users"),
+				chunkAndRun(data.tags[0], "tags"),
+			]);
 
-			console.log("finished first insert batch");
+			// Group 2: Content tables
+			console.log('\nMigrating Content Tables:');
+			console.log('Content Type          Progress                                    Stats                  Batch Info');
+			console.log('─'.repeat(100));
+			
+			await Promise.all([
+				chunkAndRun(data.jokes[0], "jokes"),
+				chunkAndRun(data.votes[0], "votes"),
+			]);
 
-		}
-		catch (error) {
-			console.error(error);
+			// Group 3: Relationship tables
+			console.log('\nMigrating Relationship Tables:');
+			console.log('Content Type          Progress                                    Stats                  Batch Info');
+			console.log('─'.repeat(100));
+			
+			await Promise.all([
+				chunkAndRun(data.jokes_authors, "jokes_author_links"),
+				chunkAndRun(data.jokes_tags[0], "jokes_tags_links"),
+				chunkAndRun(data.jokes_votes[0], "jokes_votes_links"),
+				chunkAndRun(data.users_roles, "up_users_role_links"),
+				chunkAndRun(data.votes_authors, "votes_author_links")
+			]);
+
+			multibar.stop();
+			console.log(chalk.green("\n✓ Migration completed successfully"));
+
+		} catch (error) {
+			if (multibar) multibar.stop();
+			console.error(chalk.red("\nMigration failed:"), error);
+			throw error;
+		} finally {
+			if (connection_1) connection_1.release();
+			if (connection_2) connection_2.release();
 		}
 	}
 
-	async function chunkAndRun(array: Array<any>, chunk_size: number, table_name: string, reset_table_content: boolean = false) {
-
+	async function chunkAndRun(array: Array<any>, table_name: string, reset_table_content: boolean = false) {
+		const tableColor = getTableColor(table_name);
+		
 		if (reset_table_content) {
 			resetTablesContent(table_name);
 		}
 
-		connection_1 = await pool1.getConnection();
-		connection_2 = await pool2.getConnection();
-		const sql_statement = `INSERT INTO ${table_name} SET ?`;
-		console.log("executing " + sql_statement);
+		const firstRow = array[0];
+		const columns = Object.keys(firstRow);
+		const placeholders = columns.map(() => '?').join(', ');
+		const columnsList = columns.join(', ');
+		const sql_statement = `INSERT INTO ${table_name} (${columnsList}) VALUES (${placeholders})`;
+		
+		const stmt = await connection_2.prepare(sql_statement);
 
+		// Create a progress bar in the multibar container
+		const progressBar = multibar.create(array.length, 0, {
+			contentType: tableColor(table_name.padEnd(20)),
+			chunkSize: CONFIG.CHUNK_SIZE,
+			total: array.length,
+			batch: '0/0'
+		});
 
-		let promise_group = array.map((data) => connection_2.query(sql_statement, data));
-
-		let return_array = [];
-
-		for (let i = 0; i < promise_group.length; i += chunk_size) {
-			const chunk = promise_group.slice(i, i + chunk_size);
-			return_array.push(chunk);
+		try {
+			let count = 1;
+			const totalBatches = Math.ceil(array.length / CONFIG.CHUNK_SIZE);
+			
+			for (let i = 0; i < array.length; i += CONFIG.CHUNK_SIZE) {
+				const chunk = array.slice(i, i + CONFIG.CHUNK_SIZE);
+				await Promise.all(chunk.map(data => {
+					const values = columns.map(col => data[col]);
+					return stmt.execute(values);
+				}));
+				progressBar.update(i + chunk.length, { batch: `${count}/${totalBatches}` });
+				count++;
+			}
+			
+			progressBar.update(array.length, { batch: `${totalBatches}/${totalBatches}` });
+		} catch (error) {
+			console.error(`\nError inserting into ${tableColor(table_name)}:`, error);
+			throw error;
+		} finally {
+			await stmt.close();
 		}
-
-		let count = 1;
-
-		for (const item of return_array) {
-			console.log(`inserting batch ${count}/${return_array.length}`);
-			const insertResults = await Promise.all(item);
-			count++;
-		}
-
-		// Kill connections
-		connection_1.release();
-		connection_2.release();
 	}
 
 	function renameObjectProperty(obj, oldProperty, newProperty) {
-
 		Object.defineProperty(
 			obj,
 			newProperty,
 			Object.getOwnPropertyDescriptor(obj, oldProperty)
 		);
 		delete obj[oldProperty];
-
 	}
 
 	async function resetTablesContent(table_name = '') {
-		const database_tables = [
-			//'pages',
-			//'up_users',
-			//'tags',
-			//	'jokes',
-			//	'votes',
-			//	'jokes_author_links',
-			'jokes_tags_links',
-			'jokes_votes_links',
-			'up_users_role_links',
-			'votes_author_links',
-			'comments_comment',
-			'comments_comment_author_user_links',
-		];
-
 		await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
 
-		for (const table of database_tables) {
+		for (const table of CONFIG.DATABASE.tables) {
+			const tableColor = getTableColor(table);
+			console.log(`Resetting content for ${tableColor(table)}`);
 			await connection_2.query(`Truncate table ${table}`);
 		}
 
 		await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");
+		console.log(chalk.green('✓'), 'Tables content reset completed');
 	}
 
 	migrateData();

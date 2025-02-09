@@ -7,17 +7,16 @@
     "develop": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",
-    "strapi": "strapi"
+    "strapi": "strapi",
+    "migrate": "ts-node src/utilities/migrate_db.ts"
   },
   "dependencies": {
     "@6degrees/arabic-strings": "^1.0.1",
     "@strapi/plugin-i18n": "4.15.5",
     "@strapi/plugin-users-permissions": "4.15.5",
     "@strapi/strapi": "4.15.5",
-    "colors": "^1.4.0",
     "mysql": "^2.18.1",
     "mysql2": "^3.3.2",
-    "prompts": "^2.4.2",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^5.2.0",
@@ -35,5 +34,13 @@
     "npm": ">=6.0.0"
   },
   "license": "MIT",
-  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610",
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "chalk": "4",
+    "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.5",
+    "colors": "^1.4.0",
+    "prompts": "^2.4.2"
+  }
 }

@@ -741,6 +741,7 @@ export interface ApiJokeJoke extends Schema.CollectionType {
   };
   options: {
     draftAndPublish: false;
+    populateCreatorFields: true;
   };
   attributes: {
     content: Attribute.Text & Attribute.Required;
@@ -760,10 +761,8 @@ export interface ApiJokeJoke extends Schema.CollectionType {
     >;
     createdAt: Attribute.DateTime;
     updatedAt: Attribute.DateTime;
-    createdBy: Attribute.Relation<'api::joke.joke', 'oneToOne', 'admin::user'> &
-      Attribute.Private;
-    updatedBy: Attribute.Relation<'api::joke.joke', 'oneToOne', 'admin::user'> &
-      Attribute.Private;
+    createdBy: Attribute.Relation<'api::joke.joke', 'oneToOne', 'admin::user'>;
+    updatedBy: Attribute.Relation<'api::joke.joke', 'oneToOne', 'admin::user'>;
   };
 }
 

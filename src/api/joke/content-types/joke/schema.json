@@ -1,6 +1,8 @@
 {
   "kind": "collectionType",
   "collectionName": "jokes",
+  
+  "populate": ["author", "createdBy", "updatedBy"],
   "info": {
     "singularName": "joke",
     "pluralName": "jokes",
@@ -8,7 +10,8 @@
     "description": ""
   },
   "options": {
-    "draftAndPublish": false
+    "draftAndPublish": false,
+    "populateCreatorFields": true
   },
   "pluginOptions": {},
   "attributes": {
