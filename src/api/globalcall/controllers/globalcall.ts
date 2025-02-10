@@ -1,16 +1,18 @@
-import { Context } from "koa";
 
 export default {
-  async getCounters(ctx: Context) {
+  async getCounters(ctx) {
     try {
       const counters = {
-        total_jokes: await strapi.db.query('api::joke.joke').count(),
-        deleted_jokes: await strapi.db.query('api::joke.joke').count({ 
-          where: { status: 'deleted' } 
+        total_jokes: await strapi.documents('api::joke.joke').count({}),
+        deleted_jokes: await strapi.documents('api::joke.joke').count({ 
+          filters: { status: 'deleted' } 
+
         }),
         //comments: await strapi.db.query('plugin::comments.comment').count(),
-        users: await strapi.db.query('plugin::users-permissions.user').count(),
-        pending_jokes: await strapi.service('api::joke.joke').countPending(ctx),
+        users: await strapi.documents('plugin::users-permissions.user').count({}),
+        pending_jokes: await strapi.documents('api::joke.joke').count({
+          filters: {status: 'pending'}
+        }),
         visits: 0,
       };
       return counters;
@@ -19,7 +21,7 @@ export default {
     }
   },
 
-  async getLatestComments(ctx: Context) {
+  async getLatestComments(ctx) {
     try {
       const entities = await strapi.service("plugin::comments.comment").find({
         ...ctx.query, 

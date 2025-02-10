@@ -36,14 +36,15 @@
       "target": "api::joke.joke",
       "mappedBy": "tags"
     },
-    "safe_content_preference": {
+    "restriction": {
       "type": "enumeration",
       "enum": [
         "strict",
         "moderate",
         "open"
       ],
-      "default": "moderate"
+      "default": "open",
+      "required": true
     }
   }
 }

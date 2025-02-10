@@ -1,5 +1,4 @@
 import { factories } from '@strapi/strapi';
-import { Context } from "koa";
 
 export default {
     async isAdultJoke(joke_id: number) {

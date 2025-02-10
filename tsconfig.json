@@ -2,8 +2,7 @@
   "extends": "@strapi/typescript-utils/tsconfigs/server",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": ".",
-    "allowJs": true
+    "rootDir": "."
   },
   "include": [
     "./",
@@ -18,7 +17,7 @@
     ".cache/",
     ".tmp/",
     "src/admin/",
-    "**/*.test.*",
+    "**/*.test.ts",
     "src/plugins/**"
   ]
 }

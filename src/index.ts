@@ -1,4 +1,4 @@
-import { Strapi } from '@strapi/strapi';
+import '@strapi/strapi';
 
 export default {
   /**
@@ -7,10 +7,7 @@ export default {
    *
    * This gives you an opportunity to extend code.
    */
-  register( { strapi }: { strapi: Strapi }) { 
-    //strapi.runLifecyclesFunctions('bootstrap');
-   },
-
+  register(/*{ strapi }*/) {},
 
   /**
    * An asynchronous bootstrap function that runs before

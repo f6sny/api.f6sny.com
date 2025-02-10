@@ -4,12 +4,5 @@
 
 import { factories } from '@strapi/strapi'
 
-export default factories.createCoreController('api::tag.tag', ({ strapi }) => ({
-    async find(ctx) {
+export default factories.createCoreController('api::tag.tag');
 
-   
-        const { data, meta } = await super.find(ctx);
-        return { data, meta };
-
-    },
-}));
