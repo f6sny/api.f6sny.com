@@ -2,9 +2,7 @@ namespace JokesDatabaseCleaner {
 	// Configuration options
 	const CONFIG = {
 		CHUNK_SIZE: 200, // Single chunk size for all operations
-		LIMITS: {
-			JOKES: 50,     // Limit for jokes per batch
-		},
+		
 		DATABASE: {
 			connectionLimit: 300,
 			tables: [
@@ -12,16 +10,14 @@ namespace JokesDatabaseCleaner {
 				'up_users',
 				'tags',
 				'jokes',
-				
+				'plugin_comments_comments',
+				'plugin_comments_comments_author_user_lnk',
 				'jokes_user_lnk',
 				'jokes_tags_lnk',
 				'up_users_role_lnk',
-
 				'votes',
 				'jokes_votes_lnk',
 				'votes_author_lnk',
-				// 'comments', // To be migrated in the future
-				// 'comments_comment_author_user_links', // To be migrated in the future
 			]
 		},
 		PROGRESS_BAR: {
@@ -166,7 +162,7 @@ namespace JokesDatabaseCleaner {
 			['Jokes', data.jokes[0].length, getTableColor('jokes')('Ready')],
 			['Tags', data.tags[0].length, getTableColor('tags')('Ready')],
 			['Users', data.users[0].length, getTableColor('up_users')('Ready')],
-			['Comments', data.comments[0].length, chalk.gray('Not migrated')],
+			['Comments', data.comments[0].length, getTableColor('comments')('Ready')],
 			['Votes', data.votes[0].length, getTableColor('votes')('Ready')],
 			['Pages', data.pages[0].length, getTableColor('pages')('Ready')]
 		];
@@ -216,7 +212,7 @@ namespace JokesDatabaseCleaner {
 				connection_1.query("SELECT * FROM pages"),
 				connection_1.query("SELECT * FROM comments"),
 				connection_1.query("SELECT * FROM votes"),
-				connection_1.query("SELECT * FROM jokes LIMIT ?", [CONFIG.LIMITS.JOKES]),
+				connection_1.query("SELECT * FROM jokes"),
 				connection_1.query("SELECT * FROM jokes__votes"),
 				connection_1.query("SELECT * FROM jokes_tags__tags_jokes"),
 				connection_1.query("SELECT * FROM `users-permissions_user`")
@@ -231,7 +227,7 @@ namespace JokesDatabaseCleaner {
 				jokes: [jokes],
 				jokes_votes: [[]],  // Initialize as empty nested array
 				jokes_tags: [jokesTags],
-				comments_comment_author_user_links: [],
+				comments_authors: [[]],
 				users_roles: [[]],
 				votes_authors: [[]],
 				jokes_authors: [[]]
@@ -289,7 +285,7 @@ namespace JokesDatabaseCleaner {
 			// fix comments complicated
 			data.comments[0] = data.comments[0].map((comment) => {
 				if (comment.authorUser) {
-					data.comments_comment_author_user_links.push({
+					data.comments_authors[0].push({
 						user_id: comment.authorUser,
 						comment_id: comment.id
 					})
@@ -297,13 +293,12 @@ namespace JokesDatabaseCleaner {
 
 				renameObjectProperty(comment, "authorName", "author_name");
 				renameObjectProperty(comment, "authorEmail", "author_email");
-				renameObjectProperty(comment, "authorAvatar", "author_avatar");
-				renameObjectProperty(comment, "created_by", "created_by_id");
-				renameObjectProperty(comment, "updated_by", "updated_by_id");
-				renameObjectProperty(comment, "approvalStatus", "approval_status");
+
 				comment.document_id = createId();
 
-				comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
+				const joke = data.jokes[0].find(j => j.id === parseInt(comment.relatedSlug.split(':')[1]));
+				const jokeId = joke ? joke.document_id : null;
+				comment.related = `api::joke.joke:${jokeId}`;
 				delete comment.relatedSlug;
 				delete comment.blockedThread;
 				delete comment.blockReason;
@@ -313,6 +308,10 @@ namespace JokesDatabaseCleaner {
 				delete comment.authorId;
 				delete comment.threadOf;
 				delete comment.author;
+				delete comment.created_by;
+				delete comment.approvalStatus;
+				delete comment.updated_by;
+				delete comment.authorAvatar;
 
 				return comment;
 			})
@@ -414,7 +413,11 @@ namespace JokesDatabaseCleaner {
 				chunkAndRun(data.jokes[0], "jokes"),
 				chunkAndRun(data.pages[0], "pages"),
 				chunkAndRun(data.votes[0], "votes"),
+				// comments
+				chunkAndRun(data.comments[0], "plugin_comments_comments"),
 			]);
+
+			
 
 			// Group 3: Relationship tables
 			console.log('\nMigrating Relationship Tables:');
@@ -498,7 +501,8 @@ namespace JokesDatabaseCleaner {
 				chunkAndRun(validJokesVotes, "jokes_votes_lnk"),
 				chunkAndRun(validJokesTags, "jokes_tags_lnk"),
 				chunkAndRun(data.users_roles[0], "up_users_role_lnk"),
-				chunkAndRun(validVotesAuthors, "votes_author_lnk")  // Use filtered votes_authors
+				chunkAndRun(validVotesAuthors, "votes_author_lnk"),  // Use filtered votes_authors
+				chunkAndRun(data.comments_authors[0], "plugin_comments_comments_author_user_lnk")
 			]);
 
 			multibar.stop();
