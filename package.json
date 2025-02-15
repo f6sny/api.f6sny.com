@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@flowdegree/arabic-strings": "^2.0.0",
+    "@paralleldrive/cuid2": "^2.2.2",
     "@strapi/design-system": "^1.19.0",
     "@strapi/icons": "^1.19.0",
     "@strapi/plugin-documentation": "^5.9.0",

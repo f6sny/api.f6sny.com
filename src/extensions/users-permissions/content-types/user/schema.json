@@ -65,10 +65,7 @@
       "inversedBy": "users",
       "configurable": false
     },
-    "first_name": {
-      "type": "string"
-    },
-    "last_name": {
+    "display_name": {
       "type": "string"
     },
     "date_of_birth": {
@@ -77,14 +74,14 @@
     "biography": {
       "type": "string"
     },
-    "safe_content_preference": {
+    "restriction": {
       "type": "enumeration",
       "enum": [
         "strict",
         "moderate",
         "open"
       ],
-      "default": "moderate",
+      "default": "strict",
       "required": true
     },
     "ip_address": {
@@ -98,6 +95,18 @@
       ],
       "default": "male",
       "required": true
+    },
+    "jokes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::joke.joke",
+      "mappedBy": "user"
+    },
+    "vote": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::vote.vote",
+      "inversedBy": "author"
     }
   }
 }

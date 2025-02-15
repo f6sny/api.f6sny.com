@@ -4,6 +4,7 @@ namespace JokesDatabaseCleaner {
 	const arabicString = require("@flowdegree/arabic-strings");
 	const chalk = require("chalk");
 	require("dotenv").config();
+	const Table = require('cli-table3');
 
 	// Processing limit constant
 	const PROCESS_LIMIT = 10;
@@ -32,6 +33,7 @@ namespace JokesDatabaseCleaner {
 					choices: [
 						{ title: 'Clean Slugs', value: 'slugs' },
 						{ title: 'Clean Jokes Without Tags', value: 'tags' },
+						{ title: 'Clean Inactive Users', value: 'users' },
 						{ title: 'Exit', value: 'exit' }
 					]
 				});
@@ -46,6 +48,9 @@ namespace JokesDatabaseCleaner {
 						break;
 					case 'tags':
 						await clean_jokes_without_tags();
+						break;
+					case 'users':
+						await clean_inactive_users();
 						break;
 				}
 			}
@@ -213,6 +218,112 @@ namespace JokesDatabaseCleaner {
 				console.log(chalk.green("✓ Tags added successfully"));
 			} catch (error) {
 				console.error(chalk.red("Error adding tags:"), error);
+			}
+		}
+	}
+
+	async function clean_inactive_users() {
+		const BATCH_SIZE = 50;
+
+		// Query to get users with their activity counts
+		const [result] = await my_sql_pool_connection.query(`
+			SELECT 
+				u.id,
+				u.username,
+				u.email,
+				u.first_name,
+				u.last_name,
+				COUNT(DISTINCT j.id) as jokes_count,
+				COUNT(DISTINCT c.id) as comments_count,
+				COUNT(DISTINCT v.id) as votes_count
+			FROM \`users-permissions_user\` u
+			LEFT JOIN jokes j ON j.author = u.id
+			LEFT JOIN comments c ON c.author = u.id
+			LEFT JOIN votes v ON v.author = u.id
+			GROUP BY u.id
+			HAVING jokes_count = 0 AND comments_count = 0 AND votes_count = 0
+			ORDER BY u.id ASC
+		`);
+
+		if (result.length === 0) {
+			console.log(chalk.green("✓ No inactive users found"));
+			return;
+		}
+
+		console.log(chalk.cyan(`Found ${result.length} inactive users`));
+
+		// Process users in batches
+		const chunks = chunkArray(result, BATCH_SIZE);
+
+		for (const chunk of chunks) {
+			console.log("\n" + chalk.cyan("Inactive Users:"));
+			console.log("─".repeat(100));
+
+			// Headers
+			console.log(
+				chalk.white.bold("ID") + "\t" +
+				chalk.white.bold("Username") + "\t\t" +
+				chalk.white.bold("Name") + "\t\t" +
+				chalk.white.bold("Email") + "\t\t" +
+				chalk.white.bold("Activity")
+			);
+			console.log("─".repeat(100));
+
+			// Display users with tabs
+			chunk.forEach(user => {
+				const name = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A';
+				const username = (user.username || 'N/A').padEnd(15);
+				const email = (user.email || 'N/A').padEnd(20);
+				const activity = `Jokes: ${user.jokes_count}, Comments: ${user.comments_count}, Votes: ${user.votes_count}`;
+
+				console.log(
+					`${user.id}\t${username}\t${name.padEnd(15)}\t${email}\t${activity}`
+				);
+			});
+
+			console.log();
+
+			const action = await prompts({
+				type: 'multiselect',
+				name: 'selectedUsers',
+				message: 'Select users to remove:',
+				choices: chunk.map(user => ({
+					title: `${user.username} (${user.email})`,
+					value: user.id
+				})),
+				hint: '- Space to select, Enter to confirm'
+			});
+
+			if (action.selectedUsers && action.selectedUsers.length > 0) {
+				const confirm = await prompts({
+					type: 'confirm',
+					name: 'value',
+					message: `Are you sure you want to delete ${action.selectedUsers.length} users?`,
+					initial: false
+				});
+
+				if (confirm.value) {
+					try {
+						await my_sql_pool_connection.query(
+							'DELETE FROM `users-permissions_user` WHERE id IN (?)',
+							[action.selectedUsers]
+						);
+						console.log(chalk.green(`✓ Successfully deleted ${action.selectedUsers.length} users`));
+					} catch (error) {
+						console.error(chalk.red("Error deleting users:"), error);
+					}
+				}
+			}
+
+			const continuePrompt = await prompts({
+				type: 'confirm',
+				name: 'value',
+				message: 'Continue to next batch?',
+				initial: true
+			});
+
+			if (!continuePrompt.value) {
+				break;
 			}
 		}
 	}

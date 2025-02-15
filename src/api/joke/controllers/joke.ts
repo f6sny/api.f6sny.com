@@ -9,7 +9,7 @@ export default factories.createCoreController('api::joke.joke', ({ strapi }) => 
         // Add populate and filters to query
         ctx.query = {
             ...ctx.query,
-            populate: ['votes', 'tags', 'author', 'createdBy', 'updatedBy'], 
+            populate: ['votes', 'tags'], 
         };
 
         // Call the default parent controller action
@@ -22,7 +22,7 @@ export default factories.createCoreController('api::joke.joke', ({ strapi }) => 
         const { id } = ctx.params;
         const document = await strapi.documents('api::joke.joke').findOne({
             documentId: id,
-            populate: ['votes', 'tags',  'author', 'createdBy', 'updatedBy']
+            populate: ['votes', 'tags']
         });
         return document;
     },

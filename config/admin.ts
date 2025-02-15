@@ -10,5 +10,9 @@ export default ({ env }) => ({
       salt: env('TRANSFER_TOKEN_SALT'),
     },
   },
-  url: "/dashboard"
+  url: "/dashboard",
+  watchIgnoreFiles: [
+    '**/utilities/**/migrate_db.ts', 
+    '**/utilities/**/clean_database.ts',
+  ],
 });

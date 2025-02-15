@@ -857,7 +857,7 @@ export interface ApiJokeJoke extends CollectionTypeSchema {
   };
   attributes: {
     content: TextAttribute & RequiredAttribute;
-    status: EnumerationAttribute<['active', 'pending', 'reported', 'deleted']> &
+    joke_status: EnumerationAttribute<['active', 'pending', 'reported', 'deleted']> &
       RequiredAttribute &
       DefaultTo<'pending'>;
     slug: StringAttribute & UniqueAttribute;

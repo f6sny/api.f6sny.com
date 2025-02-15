@@ -1,7 +1,10 @@
 namespace JokesDatabaseCleaner {
 	// Configuration options
 	const CONFIG = {
-		CHUNK_SIZE: 50, // Single chunk size for all operations
+		CHUNK_SIZE: 200, // Single chunk size for all operations
+		LIMITS: {
+			JOKES: 50,     // Limit for jokes per batch
+		},
 		DATABASE: {
 			connectionLimit: 300,
 			tables: [
@@ -9,12 +12,14 @@ namespace JokesDatabaseCleaner {
 				'up_users',
 				'tags',
 				'jokes',
+				
+				'jokes_user_lnk',
+				'jokes_tags_lnk',
+				'up_users_role_lnk',
+
 				'votes',
-				'jokes_author_links',
-				'jokes_tags_links',
-				'jokes_votes_links',
-				'up_users_role_links',
-				'votes_author_links',
+				'jokes_votes_lnk',
+				'votes_author_lnk',
 				// 'comments', // To be migrated in the future
 				// 'comments_comment_author_user_links', // To be migrated in the future
 			]
@@ -34,6 +39,7 @@ namespace JokesDatabaseCleaner {
 	const chalk = require('chalk');
 	const cliProgress = require('cli-progress');
 	const Table = require('cli-table3');
+	const { createId } = require('@paralleldrive/cuid2');
 
 	require('util').inspect.defaultOptions.depth = 1;
 	//console.log(process.env);
@@ -63,16 +69,84 @@ namespace JokesDatabaseCleaner {
 		'tags': chalk.yellow,
 		'jokes': chalk.blue,
 		'votes': chalk.red,
-		'jokes_author_links': chalk.greenBright,
-		'jokes_tags_links': chalk.blueBright,
-		'jokes_votes_links': chalk.magentaBright,
-		'up_users_role_links': chalk.yellowBright,
-		'votes_author_links': chalk.cyanBright,
+		'jokes_user_lnk': chalk.greenBright,
+		'jokes_tags_lnk': chalk.blueBright,
+		'jokes_votes_lnk': chalk.magentaBright,
+		'up_users_role_lnk': chalk.yellowBright,
+		'votes_author_lnk': chalk.cyanBright,
 	};
 
 	// Helper function to get color for table
 	function getTableColor(tableName: string) {
 		return tableColors[tableName] || chalk.white;
+	}
+
+	async function migrateAdminUsers() {
+		console.log(chalk.cyan('\nMigrating admin users...'));
+		
+		
+		// Get admin users from source database
+		const [adminUsers] = await connection_1.query(`
+			SELECT * FROM \`strapi_administrator\`
+			ORDER BY id ASC
+		`);
+
+		if (!adminUsers.length) {
+			console.log(chalk.yellow('No admin users found'));
+			return;
+		}
+
+		console.log(chalk.cyan(`Found ${adminUsers.length} admin users`));
+
+		try {   
+			// Reset admin_users table
+			await resetTablesContent('admin_users');
+
+			// Prepare admin users data
+			const processedAdminUsers = adminUsers.map(user => ({
+				id: user.id,
+				firstname: user.firstname || '',
+				lastname: user.lastname || '',
+				username: user.username,
+				email: user.email,
+				document_id: createId(),
+				password: user.password,
+				reset_password_token: user.resetPasswordToken || null,
+				registration_token: user.registrationToken || null,
+				is_active: user.isActive ? 1 : 0,
+				blocked: user.blocked ? 1 : 0
+			}));
+
+			// Insert admin users
+			for (const adminUser of processedAdminUsers) {
+				await connection_2.query(
+					'INSERT INTO admin_users SET ?',
+					adminUser
+				);
+			}
+
+			// Reset admin_users_roles_lnk table
+			await resetTablesContent('admin_users_roles_lnk');
+
+			// migrate strapi_users_roles to admin_users_roles_lnk
+			// user_id, role_id
+			const [adminUsersRoles] = await connection_1.query(`
+				SELECT * FROM \`strapi_users_roles\`
+				ORDER BY id ASC
+			`);	
+
+			for (const adminUserRole of adminUsersRoles) {
+				await connection_2.query(
+					'INSERT INTO admin_users_roles_lnk SET ?',
+					adminUserRole
+				);
+			}
+			
+			console.log(chalk.green('✓ Admin users migration completed'));
+		} catch (error) {
+			console.error(chalk.red('Error migrating admin users:'), error);
+			throw error;
+		}
 	}
 
 	async function displayDataSummary(data: any) {
@@ -122,51 +196,58 @@ namespace JokesDatabaseCleaner {
 			connection_1 = connection1;
 			connection_2 = connection2;
 
-			// Fetch data concurrently
+			// Migrate admin users first
+			await migrateAdminUsers();
+
+			// First get all referenced users
+
+			// Fetch other data with limits
 			const [
 				[tags], 
-				[users], 
 				[pages], 
-				[comments], // Keep fetching comments data
+				[comments],
 				[votes], 
 				[jokes],
 				[jokesVotes],
-				[jokesTags]
+				[jokesTags],
+				[users]
 			] = await Promise.all([
 				connection_1.query("SELECT * FROM tags"),
-				connection_1.query("SELECT * FROM `users-permissions_user`"),
 				connection_1.query("SELECT * FROM pages"),
-				connection_1.query("SELECT * FROM comments"), // Keep this query
+				connection_1.query("SELECT * FROM comments"),
 				connection_1.query("SELECT * FROM votes"),
-				connection_1.query("SELECT * FROM jokes"),
+				connection_1.query("SELECT * FROM jokes LIMIT ?", [CONFIG.LIMITS.JOKES]),
 				connection_1.query("SELECT * FROM jokes__votes"),
-				connection_1.query("SELECT * FROM jokes_tags__tags_jokes")
+				connection_1.query("SELECT * FROM jokes_tags__tags_jokes"),
+				connection_1.query("SELECT * FROM `users-permissions_user`")
 			]);
 
 			const data = {
 				tags: [tags],
 				users: [users],
 				pages: [pages],
-				comments: [comments], // Keep this in data object
+				comments: [comments],
 				votes: [votes],
 				jokes: [jokes],
-				jokes_votes: [jokesVotes],
+				jokes_votes: [[]],  // Initialize as empty nested array
 				jokes_tags: [jokesTags],
-				comments_comment_author_user_links: [], // Keep this for future
-				users_roles: [],
-				votes_authors: [],
-				jokes_authors: []
+				comments_comment_author_user_links: [],
+				users_roles: [[]],
+				votes_authors: [[]],
+				jokes_authors: [[]]
 			};
 
 			// fix jokes parameters
 			data.jokes[0] = data.jokes[0].map((joke) => {
-				data.jokes_authors.push({
+				data.jokes_authors[0].push({  // Push to the inner array
 					joke_id: joke.id,
-					user_id: joke.created_by,
+					user_id: joke.author,
 				});
 
 				renameObjectProperty(joke, "created_by", "created_by_id");
 				renameObjectProperty(joke, "updated_by", "updated_by_id");
+				renameObjectProperty(joke, "status", "joke_status");
+				joke.document_id = createId();
 				joke.created_by_id = 1;
 				joke.updated_by_id = 1;
 
@@ -176,24 +257,31 @@ namespace JokesDatabaseCleaner {
 
 			// fix user parameters
 			data.users[0] = data.users[0].map((user) => {
-				data.users_roles.push({
+				data.users_roles[0].push({
 					user_id: user.id,
-					role_id: user.role
+					role_id: 1
 				})
 
 				delete user.role;
 
 				if (user.adult_content == 'hide') {
-					user.adult_content = 'moderate';
+					user.adult_content = 'strict';
 				} else {
 					user.adult_content = 'open';
 				}
+
+				user.document_id = createId();
 
 				renameObjectProperty(user, "resetPasswordToken", "reset_password_token");
 				renameObjectProperty(user, "created_by", "created_by_id");
 				renameObjectProperty(user, "updated_by", "updated_by_id");
 				renameObjectProperty(user, "confirmationToken", "confirmation_token");
-				renameObjectProperty(user, "adult_content", "safe_content_preference");
+				renameObjectProperty(user, "adult_content", "restriction");
+
+				// combine first_name and last_name into display_name
+				user.display_name = `${user.first_name} ${user.last_name}`;
+				delete user.first_name;
+				delete user.last_name;	
 
 				return user;
 			})
@@ -213,6 +301,7 @@ namespace JokesDatabaseCleaner {
 				renameObjectProperty(comment, "created_by", "created_by_id");
 				renameObjectProperty(comment, "updated_by", "updated_by_id");
 				renameObjectProperty(comment, "approvalStatus", "approval_status");
+				comment.document_id = createId();
 
 				comment.related = `api::joke:joke:${comment.relatedSlug.split(':')[1]}`;
 				delete comment.relatedSlug;
@@ -231,14 +320,15 @@ namespace JokesDatabaseCleaner {
 			// fix tags
 			data.tags[0] = data.tags[0].map((tag) => {
 				if (tag.adult_content == 'hide') {
-					tag.adult_content = 'moderate';
+					tag.adult_content = 'strict';
 				} else {
 					tag.adult_content = 'open';
 				}
 
-				renameObjectProperty(tag, "adult_content", "safe_content_preference");
+				renameObjectProperty(tag, "adult_content", "restriction");
 				renameObjectProperty(tag, "created_by", "created_by_id");
 				renameObjectProperty(tag, "updated_by", "updated_by_id");
+				tag.document_id = createId();
 
 				return tag;
 			})
@@ -247,26 +337,36 @@ namespace JokesDatabaseCleaner {
 			data.pages[0] = data.pages[0].map((page) => {
 				renameObjectProperty(page, "created_by", "created_by_id");
 				renameObjectProperty(page, "updated_by", "updated_by_id");
+				page.document_id = createId();
 
 				return page;
 			})
 
 			// fix votes
 			data.votes[0] = data.votes[0].map((vote) => {
+				// Add vote to jokes_votes relationship
+				data.jokes_votes[0].push({
+					joke_id: vote.joke,  // Make sure this matches your source field name
+					vote_id: vote.id
+				});
+
 				if (vote.author) {
-					data.votes_authors.push({
+					data.votes_authors[0].push({
 						vote_id: vote.id,
 						user_id: vote.author
-					})
+					});
 				}
 				else if (vote.created_by != 1) {
-					data.votes_authors.push({
+					data.votes_authors[0].push({
 						vote_id: vote.id,
 						user_id: vote.created_by
-					})
+					});
 				}
 
+				vote.document_id = createId();
+
 				delete vote.author;
+				delete vote.joke;  // Remove the joke field after creating relationship
 
 				renameObjectProperty(vote, "created_by", "created_by_id");
 				renameObjectProperty(vote, "updated_by", "updated_by_id");
@@ -301,7 +401,6 @@ namespace JokesDatabaseCleaner {
 			console.log('─'.repeat(100));
 			
 			await Promise.all([
-				chunkAndRun(data.pages[0], "pages"),
 				chunkAndRun(data.users[0], "up_users"),
 				chunkAndRun(data.tags[0], "tags"),
 			]);
@@ -313,6 +412,7 @@ namespace JokesDatabaseCleaner {
 			
 			await Promise.all([
 				chunkAndRun(data.jokes[0], "jokes"),
+				chunkAndRun(data.pages[0], "pages"),
 				chunkAndRun(data.votes[0], "votes"),
 			]);
 
@@ -320,13 +420,85 @@ namespace JokesDatabaseCleaner {
 			console.log('\nMigrating Relationship Tables:');
 			console.log('Content Type          Progress                                    Stats                  Batch Info');
 			console.log('─'.repeat(100));
+
+			// After migrating jokes, get the list of migrated joke IDs
+			const [migratedJokes] = await connection_2.query('SELECT id FROM jokes');
+			const migratedJokeIds = migratedJokes.map(joke => joke.id);
+
+			// Filter joke tags to only include relationships for migrated jokes
+			const validJokesTags = data.jokes_tags[0].filter(jokeTag => 
+				jokeTag && 
+				jokeTag.joke_id && 
+				jokeTag.tag_id &&
+				migratedJokeIds.includes(jokeTag.joke_id)  // Only include tags for migrated jokes
+			);
+
+			if (validJokesTags.length === 0) {
+				console.log(chalk.yellow("No valid joke tags found to process"));
+			}
+
+			// Log invalid or skipped entries for debugging
+			const invalidJokesTags = data.jokes_tags[0].filter(jokeTag => 
+				!jokeTag || 
+				!jokeTag.joke_id || 
+				!jokeTag.tag_id ||
+				!migratedJokeIds.includes(jokeTag.joke_id)  // Log skipped tags
+			);
 			
+			if (invalidJokesTags.length > 0) {
+				console.log(chalk.yellow(`Found ${invalidJokesTags.length} invalid or skipped joke tags:`));
+				console.log(chalk.yellow(`(${invalidJokesTags.length - invalidJokesTags.filter(jt => !jt || !jt.joke_id || !jt.tag_id).length} skipped due to joke limit)`));
+			}
+
+			// Similarly for jokes_authors, only include relationships for migrated jokes
+			const validJokesAuthors = data.jokes_authors[0].filter(ja =>
+				ja && ja.joke_id && ja.user_id &&
+				migratedJokeIds.includes(ja.joke_id)
+			);
+
+			// Log information about jokes_authors
+			if (validJokesAuthors.length === 0) {
+				console.log(chalk.yellow("No valid joke authors found to process"));
+			}
+
+			const invalidJokesAuthors = data.jokes_authors[0].filter(ja => 
+				!ja || !ja.joke_id || !ja.user_id ||
+				!migratedJokeIds.includes(ja.joke_id)
+			);
+
+			if (invalidJokesAuthors.length > 0) {
+				console.log(chalk.yellow(`Found ${invalidJokesAuthors.length} invalid or skipped joke authors:`));
+				console.log(chalk.yellow(`(${invalidJokesAuthors.length - invalidJokesAuthors.filter(ja => !ja || !ja.joke_id || !ja.user_id).length} skipped due to joke limit)`));
+			}
+
+			// Get migrated votes after votes table is populated
+			const [migratedVotes] = await connection_2.query('SELECT id FROM votes');
+			const migratedVoteIds = migratedVotes.map(vote => vote.id);
+
+			// Filter jokes_votes to include only valid relationships
+			const validJokesVotes = data.jokes_votes[0].filter(jokeVote => 
+				jokeVote && 
+				jokeVote.joke_id && 
+				jokeVote.vote_id &&
+				migratedJokeIds.includes(jokeVote.joke_id) &&
+				migratedVoteIds.includes(jokeVote.vote_id)  // Add check for valid vote IDs
+			);
+
+			// Filter votes_authors to include only valid relationships
+			const validVotesAuthors = data.votes_authors[0].filter(voteAuthor =>
+				voteAuthor &&
+				voteAuthor.vote_id &&
+				voteAuthor.user_id &&
+				migratedVoteIds.includes(voteAuthor.vote_id)
+			);
+
+			// Update the final Promise.all to use the filtered votes relationships
 			await Promise.all([
-				chunkAndRun(data.jokes_authors, "jokes_author_links"),
-				chunkAndRun(data.jokes_tags[0], "jokes_tags_links"),
-				chunkAndRun(data.jokes_votes[0], "jokes_votes_links"),
-				chunkAndRun(data.users_roles, "up_users_role_links"),
-				chunkAndRun(data.votes_authors, "votes_author_links")
+				chunkAndRun(validJokesAuthors, "jokes_user_lnk"),
+				chunkAndRun(validJokesVotes, "jokes_votes_lnk"),
+				chunkAndRun(validJokesTags, "jokes_tags_lnk"),
+				chunkAndRun(data.users_roles[0], "up_users_role_lnk"),
+				chunkAndRun(validVotesAuthors, "votes_author_lnk")  // Use filtered votes_authors
 			]);
 
 			multibar.stop();
@@ -339,17 +511,31 @@ namespace JokesDatabaseCleaner {
 		} finally {
 			if (connection_1) connection_1.release();
 			if (connection_2) connection_2.release();
+			process.exit(0);
 		}
 	}
 
 	async function chunkAndRun(array: Array<any>, table_name: string, reset_table_content: boolean = false) {
+		console.log(`Chunking and running ${table_name}`);
 		const tableColor = getTableColor(table_name);
 		
 		if (reset_table_content) {
 			resetTablesContent(table_name);
 		}
 
+		// Add check for empty array
+		if (!array || array.length === 0) {
+			console.log(chalk.yellow(`No data to process for ${table_name}`));
+			return;
+		}
+
 		const firstRow = array[0];
+		// Add check for undefined first row
+		if (!firstRow) {
+			console.log(chalk.yellow(`First row is undefined for ${table_name}`));
+			return;
+		}
+
 		const columns = Object.keys(firstRow);
 		const placeholders = columns.map(() => '?').join(', ');
 		const columnsList = columns.join(', ');
@@ -400,10 +586,16 @@ namespace JokesDatabaseCleaner {
 	async function resetTablesContent(table_name = '') {
 		await connection_2.query("SET FOREIGN_KEY_CHECKS = 0;");
 
-		for (const table of CONFIG.DATABASE.tables) {
-			const tableColor = getTableColor(table);
-			console.log(`Resetting content for ${tableColor(table)}`);
-			await connection_2.query(`Truncate table ${table}`);
+		if (table_name) {
+			const tableColor = getTableColor(table_name);
+			console.log(`Resetting content for ${tableColor(table_name)}`);
+			await connection_2.query(`Truncate table ${table_name}`);
+		} else {
+			for (const table of CONFIG.DATABASE.tables) {
+				const tableColor = getTableColor(table);
+				console.log(`Resetting content for ${tableColor(table)}`);
+				await connection_2.query(`Truncate table ${table}`);
+			}
 		}
 
 		await connection_2.query("SET FOREIGN_KEY_CHECKS = 1;");

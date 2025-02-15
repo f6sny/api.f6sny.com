@@ -8,8 +8,7 @@
     "description": ""
   },
   "options": {
-    "draftAndPublish": false,
-    "populateCreatorFields": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
@@ -17,7 +16,7 @@
       "type": "text",
       "required": true
     },
-    "status": {
+    "joke_status": {
       "type": "enumeration",
       "enum": [
         "active",
@@ -47,10 +46,11 @@
       "relation": "oneToMany",
       "target": "api::vote.vote"
     },
-    "author": {
+    "user": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "plugin::users-permissions.user"
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "jokes"
     }
   }
 }

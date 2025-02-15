@@ -379,30 +379,31 @@ export interface ApiJokeJoke extends Struct.CollectionTypeSchema {
   };
   options: {
     draftAndPublish: false;
-    populateCreatorFields: true;
   };
   attributes: {
-    author: Schema.Attribute.Relation<
-      'oneToOne',
-      'plugin::users-permissions.user'
-    >;
     content: Schema.Attribute.Text & Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
-    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'>;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    joke_status: Schema.Attribute.Enumeration<
+      ['active', 'pending', 'reported', 'deleted']
+    > &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'pending'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::joke.joke'> &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     remarks: Schema.Attribute.Text & Schema.Attribute.Private;
     slug: Schema.Attribute.String & Schema.Attribute.Unique;
-    status: Schema.Attribute.Enumeration<
-      ['active', 'pending', 'reported', 'deleted']
-    > &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'pending'>;
     tags: Schema.Attribute.Relation<'manyToMany', 'api::tag.tag'>;
     updatedAt: Schema.Attribute.DateTime;
-    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'>;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'manyToOne',
+      'plugin::users-permissions.user'
+    >;
     votes: Schema.Attribute.Relation<'oneToMany', 'api::vote.vote'>;
   };
 }
@@ -1085,17 +1086,17 @@ export interface PluginUsersPermissionsUser
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     date_of_birth: Schema.Attribute.Date;
+    display_name: Schema.Attribute.String;
     email: Schema.Attribute.Email &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    first_name: Schema.Attribute.String;
     gender: Schema.Attribute.Enumeration<['male', 'female']> &
       Schema.Attribute.Required &
       Schema.Attribute.DefaultTo<'male'>;
     ip_address: Schema.Attribute.String;
-    last_name: Schema.Attribute.String;
+    jokes: Schema.Attribute.Relation<'oneToMany', 'api::joke.joke'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -1110,15 +1111,13 @@ export interface PluginUsersPermissionsUser
     provider: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     resetPasswordToken: Schema.Attribute.String & Schema.Attribute.Private;
+    restriction: Schema.Attribute.Enumeration<['strict', 'moderate', 'open']> &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'strict'>;
     role: Schema.Attribute.Relation<
       'manyToOne',
       'plugin::users-permissions.role'
     >;
-    safe_content_preference: Schema.Attribute.Enumeration<
-      ['strict', 'moderate', 'open']
-    > &
-      Schema.Attribute.Required &
-      Schema.Attribute.DefaultTo<'moderate'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1128,6 +1127,7 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 3;
       }>;
+    vote: Schema.Attribute.Relation<'oneToOne', 'api::vote.vote'>;
   };
 }
 

@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "2025-02-10T18:15:11.088Z"
+    "x-generation-date": "2025-02-15T19:37:46.659Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -3523,14 +3523,14 @@
           "data": {
             "required": [
               "content",
-              "status"
+              "joke_status"
             ],
             "type": "object",
             "properties": {
               "content": {
                 "type": "string"
               },
-              "status": {
+              "joke_status": {
                 "type": "string",
                 "enum": [
                   "active",
@@ -3573,7 +3573,7 @@
                   "example": "string or id"
                 }
               },
-              "author": {
+              "user": {
                 "oneOf": [
                   {
                     "type": "integer"
@@ -3644,7 +3644,7 @@
         "type": "object",
         "required": [
           "content",
-          "status"
+          "joke_status"
         ],
         "properties": {
           "id": {
@@ -3656,7 +3656,7 @@
           "content": {
             "type": "string"
           },
-          "status": {
+          "joke_status": {
             "type": "string",
             "enum": [
               "active",
@@ -3708,7 +3708,7 @@
                       "content": {
                         "type": "string"
                       },
-                      "status": {
+                      "joke_status": {
                         "type": "string",
                         "enum": [
                           "active",
@@ -4206,10 +4206,7 @@
                                     }
                                   }
                                 },
-                                "first_name": {
-                                  "type": "string"
-                                },
-                                "last_name": {
+                                "display_name": {
                                   "type": "string"
                                 },
                                 "date_of_birth": {
@@ -4219,7 +4216,7 @@
                                 "biography": {
                                   "type": "string"
                                 },
-                                "safe_content_preference": {
+                                "restriction": {
                                   "type": "string",
                                   "enum": [
                                     "strict",
@@ -4236,6 +4233,31 @@
                                     "male",
                                     "female"
                                   ]
+                                },
+                                "jokes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "documentId": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                },
+                                "vote": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "documentId": {
+                                      "type": "string"
+                                    }
+                                  }
                                 },
                                 "createdAt": {
                                   "type": "string",
@@ -4344,7 +4366,7 @@
                           }
                         }
                       },
-                      "author": {
+                      "user": {
                         "type": "object",
                         "properties": {
                           "id": {
@@ -4485,7 +4507,7 @@
               }
             }
           },
-          "author": {
+          "user": {
             "type": "object",
             "properties": {
               "id": {
@@ -5145,10 +5167,7 @@
                         }
                       }
                     },
-                    "first_name": {
-                      "type": "string"
-                    },
-                    "last_name": {
+                    "display_name": {
                       "type": "string"
                     },
                     "date_of_birth": {
@@ -5158,7 +5177,7 @@
                     "biography": {
                       "type": "string"
                     },
-                    "safe_content_preference": {
+                    "restriction": {
                       "type": "string",
                       "enum": [
                         "strict",
@@ -5175,6 +5194,224 @@
                         "male",
                         "female"
                       ]
+                    },
+                    "jokes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "documentId": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "joke_status": {
+                            "type": "string",
+                            "enum": [
+                              "active",
+                              "pending",
+                              "reported",
+                              "deleted"
+                            ]
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "remarks": {
+                            "type": "string"
+                          },
+                          "tags": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                },
+                                "title": {
+                                  "type": "string"
+                                },
+                                "description": {
+                                  "type": "string"
+                                },
+                                "hex_color": {
+                                  "type": "string"
+                                },
+                                "slug": {
+                                  "type": "string"
+                                },
+                                "jokes": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "documentId": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                },
+                                "restriction": {
+                                  "type": "string",
+                                  "enum": [
+                                    "strict",
+                                    "moderate",
+                                    "open"
+                                  ]
+                                },
+                                "createdAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "updatedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "publishedAt": {
+                                  "type": "string",
+                                  "format": "date-time"
+                                },
+                                "createdBy": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "documentId": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "updatedBy": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "number"
+                                    },
+                                    "documentId": {
+                                      "type": "string"
+                                    }
+                                  }
+                                },
+                                "locale": {
+                                  "type": "string"
+                                },
+                                "localizations": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "id": {
+                                        "type": "number"
+                                      },
+                                      "documentId": {
+                                        "type": "string"
+                                      }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          },
+                          "votes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "user": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "updatedBy": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "locale": {
+                            "type": "string"
+                          },
+                          "localizations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "vote": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "documentId": {
+                          "type": "string"
+                        }
+                      }
                     },
                     "createdAt": {
                       "type": "string",
@@ -5565,7 +5802,7 @@
                 "content": {
                   "type": "string"
                 },
-                "status": {
+                "joke_status": {
                   "type": "string",
                   "enum": [
                     "active",
@@ -6148,10 +6385,7 @@
                               }
                             }
                           },
-                          "first_name": {
-                            "type": "string"
-                          },
-                          "last_name": {
+                          "display_name": {
                             "type": "string"
                           },
                           "date_of_birth": {
@@ -6161,7 +6395,7 @@
                           "biography": {
                             "type": "string"
                           },
-                          "safe_content_preference": {
+                          "restriction": {
                             "type": "string",
                             "enum": [
                               "strict",
@@ -6178,6 +6412,31 @@
                               "male",
                               "female"
                             ]
+                          },
+                          "jokes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "vote": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
                           },
                           "createdAt": {
                             "type": "string",
@@ -6286,7 +6545,7 @@
                     }
                   }
                 },
-                "author": {
+                "user": {
                   "type": "object",
                   "properties": {
                     "id": {
@@ -6983,10 +7242,7 @@
                   }
                 }
               },
-              "first_name": {
-                "type": "string"
-              },
-              "last_name": {
+              "display_name": {
                 "type": "string"
               },
               "date_of_birth": {
@@ -6996,7 +7252,7 @@
               "biography": {
                 "type": "string"
               },
-              "safe_content_preference": {
+              "restriction": {
                 "type": "string",
                 "enum": [
                   "strict",
@@ -7013,6 +7269,297 @@
                   "male",
                   "female"
                 ]
+              },
+              "jokes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "documentId": {
+                      "type": "string"
+                    },
+                    "content": {
+                      "type": "string"
+                    },
+                    "joke_status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "pending",
+                        "reported",
+                        "deleted"
+                      ]
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "remarks": {
+                      "type": "string"
+                    },
+                    "tags": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "documentId": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          },
+                          "hex_color": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "jokes": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          },
+                          "restriction": {
+                            "type": "string",
+                            "enum": [
+                              "strict",
+                              "moderate",
+                              "open"
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "updatedBy": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "locale": {
+                            "type": "string"
+                          },
+                          "localizations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "votes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "documentId": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "type": "string",
+                            "enum": [
+                              "up",
+                              "down",
+                              "neutral"
+                            ]
+                          },
+                          "ip_address": {
+                            "type": "string"
+                          },
+                          "author": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "createdAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "updatedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "publishedAt": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "createdBy": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "updatedBy": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "number"
+                              },
+                              "documentId": {
+                                "type": "string"
+                              }
+                            }
+                          },
+                          "locale": {
+                            "type": "string"
+                          },
+                          "localizations": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "number"
+                                },
+                                "documentId": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "documentId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "publishedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "createdBy": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "documentId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "updatedBy": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "number"
+                        },
+                        "documentId": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "locale": {
+                      "type": "string"
+                    },
+                    "localizations": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "number"
+                          },
+                          "documentId": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "vote": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  },
+                  "documentId": {
+                    "type": "string"
+                  }
+                }
               },
               "createdAt": {
                 "type": "string",
@@ -7114,79 +7661,6 @@
                 },
                 "documentId": {
                   "type": "string"
-                },
-                "value": {
-                  "type": "string",
-                  "enum": [
-                    "up",
-                    "down",
-                    "neutral"
-                  ]
-                },
-                "ip_address": {
-                  "type": "string"
-                },
-                "author": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "documentId": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "createdAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "updatedAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "publishedAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "createdBy": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "documentId": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "updatedBy": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "documentId": {
-                      "type": "string"
-                    }
-                  }
-                },
-                "locale": {
-                  "type": "string"
-                },
-                "localizations": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "number"
-                      },
-                      "documentId": {
-                        "type": "string"
-                      }
-                    }
-                  }
                 }
               }
             }
