@@ -6,7 +6,7 @@ To read more about strapi, go to [strapi.io](https://docs.strapi.io/)
 ## 🌳 Features
 
 - Typescript
-- Strapi 4
+- Strapi 5
 - GlobalCalls Custom Route
 - Dockerized with docker-compose and everything
 - container image ready

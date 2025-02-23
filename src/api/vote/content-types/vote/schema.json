@@ -25,11 +25,28 @@
     "ip_address": {
       "type": "string"
     },
+    "joke": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::joke.joke",
+      "inversedBy": "votes"
+    },
+    "page": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::page.page",
+      "inversedBy": "votes"
+    },
     "author": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
-      "inversedBy": "vote"
+      "inversedBy": "votes"
+    },
+    "fingerprint": {
+      "type": "string",
+      "required": false,
+      "private": true
     }
   }
 }

@@ -9,7 +9,6 @@
   - [ ] vote
   - [ ] tag
 - [ ] Containerize and build image
-- [ ] Portainrize
 - [ ] Update the readme once code merged
 
 ## Things That Should Be Tested

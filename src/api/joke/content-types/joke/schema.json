@@ -44,7 +44,8 @@
     "votes": {
       "type": "relation",
       "relation": "oneToMany",
-      "target": "api::vote.vote"
+      "target": "api::vote.vote",
+      "mappedBy": "joke"
     },
     "user": {
       "type": "relation",

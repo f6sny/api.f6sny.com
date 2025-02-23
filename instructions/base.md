@@ -21,3 +21,30 @@ This is the front-end portion of the project which aims to provide a database of
   Visitors and users may comment on jokes on the platform, for registerd users, the information will be auto-populated, for visitors, the email and nickname will be required, if joke email address was not verified, an unverified tag will be added to the user info.
 - User Registration.
   Registered users will have their prefernces preserved across logins and they will have all their submitted jokes attributed to their account. So, a users page, will have his jokes presented to the visitor, and there will be a tab for his comments.
+
+| v4 | comment | v5 | comment |
+|---------|---------|-----|---------|
+| id | | id | auto generate with createId() |
+| document_id | | content | |
+| blocked | all empty in source db | blocked | keep empty |
+| blockedThread | all empty in source db | blocked_thread | keep empty |
+| blockReason | all empty in source db | block_reason | keep empty |
+| points | all empty in source db | | |
+| authorUser | if author id exists, that is linking to a real registered user, if not, the name and email fields are populated | | |
+| authorType | all empty in source db | | |
+| authorId | all empty in source db | author_id | keep empty |
+| authorName | exists when authoruser is null | author_name | |
+| authorEmail | exists when authoruser is null | author_email | |
+| authorAvatar | all empty in source db | author_avatar | |
+| relatedSlug | has link to the joke, ex. "jokes:522" | related | |
+| threadOf | all empty in source db | | |
+| created_by | all empty in source db | created_by_id | keep empty |
+| updated_by | all empty in source db | updated_by_id | keep empty |
+| created_at | | created_at | |
+| updated_at | | updated_at | |
+| author | all empty in source db | | |
+| removed | all empty in source db | removed | keep empty |
+| approvalStatus | all empty in source db | approval_status | keep empty |
+| | | locale | |
+| | | is_admin_comment | if authorUser is 1, make this true |
+  

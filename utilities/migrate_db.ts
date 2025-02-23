@@ -1,4 +1,13 @@
 namespace JokesDatabaseCleaner {
+	// Dependencies
+	var mysql = require("mysql2/promise");
+	const chalk = require('chalk');
+	const cliProgress = require('cli-progress');
+	const Table = require('cli-table3');
+	const { createId } = require('@paralleldrive/cuid2');
+	require('dotenv').config();
+	require('util').inspect.defaultOptions.depth = 1;
+
 	// Configuration options
 	const CONFIG = {
 		CHUNK_SIZE: 200, // Single chunk size for all operations
@@ -29,16 +38,19 @@ namespace JokesDatabaseCleaner {
 		}
 	};
 
-	// Dependencies
-	var mysql = require("mysql2/promise");
-	require('dotenv').config();
-	const chalk = require('chalk');
-	const cliProgress = require('cli-progress');
-	const Table = require('cli-table3');
-	const { createId } = require('@paralleldrive/cuid2');
+	const tableColors = {
+		'pages': chalk.cyan,
+		'up_users': chalk.magenta,
+		'tags': chalk.yellow,
+		'jokes': chalk.blue,
+		'votes': chalk.red,
+		'jokes_user_lnk': chalk.greenBright,
+		'jokes_tags_lnk': chalk.blueBright,
+		'jokes_votes_lnk': chalk.magentaBright,
+		'up_users_role_lnk': chalk.yellowBright,
+		'votes_author_lnk': chalk.cyanBright,
+	};
 
-	require('util').inspect.defaultOptions.depth = 1;
-	//console.log(process.env);
 	var pool1 = mysql.createPool({
 		connectionLimit: CONFIG.DATABASE.connectionLimit,
 		host: process.env.DATABASE_HOST_OLD,
@@ -59,18 +71,7 @@ namespace JokesDatabaseCleaner {
 	let multibar: any = null;
 
 	// Add color mapping for tables
-	const tableColors = {
-		'pages': chalk.cyan,
-		'up_users': chalk.magenta,
-		'tags': chalk.yellow,
-		'jokes': chalk.blue,
-		'votes': chalk.red,
-		'jokes_user_lnk': chalk.greenBright,
-		'jokes_tags_lnk': chalk.blueBright,
-		'jokes_votes_lnk': chalk.magentaBright,
-		'up_users_role_lnk': chalk.yellowBright,
-		'votes_author_lnk': chalk.cyanBright,
-	};
+	
 
 	// Helper function to get color for table
 	function getTableColor(tableName: string) {
@@ -79,7 +80,6 @@ namespace JokesDatabaseCleaner {
 
 	async function migrateAdminUsers() {
 		console.log(chalk.cyan('\nMigrating admin users...'));
-		
 		
 		// Get admin users from source database
 		const [adminUsers] = await connection_1.query(`
@@ -195,9 +195,6 @@ namespace JokesDatabaseCleaner {
 			// Migrate admin users first
 			await migrateAdminUsers();
 
-			// First get all referenced users
-
-			// Fetch other data with limits
 			const [
 				[tags], 
 				[pages], 
@@ -343,38 +340,45 @@ namespace JokesDatabaseCleaner {
 
 			// fix votes
 			data.votes[0] = data.votes[0].map((vote) => {
-				// Add vote to jokes_votes relationship
-				data.jokes_votes[0].push({
-					joke_id: vote.joke,  // Make sure this matches your source field name
-					vote_id: vote.id
-				});
+				// Create document_id for the vote
+				vote.document_id = createId();
 
+				// Handle the author relationship based on priority:
+				// 1. author field if exists
+				// 2. created_by if author doesn't exist
+				// 3. no author link if neither exists
 				if (vote.author) {
+					// Case 1: use author field for votes_authors link
 					data.votes_authors[0].push({
 						vote_id: vote.id,
 						user_id: vote.author
 					});
-				}
-				else if (vote.created_by != 1) {
+				} else if (vote.created_by) {
+					// Case 2: use created_by for votes_authors link
 					data.votes_authors[0].push({
 						vote_id: vote.id,
 						user_id: vote.created_by
 					});
 				}
+				// Case 3: no author information - don't create link
 
-				vote.document_id = createId();
-
-				delete vote.author;
-				delete vote.joke;  // Remove the joke field after creating relationship
-
+				// Rename fields
 				renameObjectProperty(vote, "created_by", "created_by_id");
 				renameObjectProperty(vote, "updated_by", "updated_by_id");
 
-				vote.created_by_id = 1;
-				vote.updated_by_id = 1;
+				// Set all user reference fields to null
+				vote.created_by_id = null;
+				vote.updated_by_id = null;
+				delete vote.author;
 
 				return vote;
 			})
+
+			// Handle jokes__votes relationships separately
+			data.jokes_votes[0] = jokesVotes.map(relation => ({
+				joke_id: relation.joke_id,
+				vote_id: relation.vote_id
+			}));
 
 			// Display data summary first
 			await displayDataSummary(data);
@@ -413,95 +417,20 @@ namespace JokesDatabaseCleaner {
 				chunkAndRun(data.jokes[0], "jokes"),
 				chunkAndRun(data.pages[0], "pages"),
 				chunkAndRun(data.votes[0], "votes"),
-				// comments
 				chunkAndRun(data.comments[0], "plugin_comments_comments"),
 			]);
-
-			
 
 			// Group 3: Relationship tables
 			console.log('\nMigrating Relationship Tables:');
 			console.log('Content Type          Progress                                    Stats                  Batch Info');
 			console.log('─'.repeat(100));
 
-			// After migrating jokes, get the list of migrated joke IDs
-			const [migratedJokes] = await connection_2.query('SELECT id FROM jokes');
-			const migratedJokeIds = migratedJokes.map(joke => joke.id);
-
-			// Filter joke tags to only include relationships for migrated jokes
-			const validJokesTags = data.jokes_tags[0].filter(jokeTag => 
-				jokeTag && 
-				jokeTag.joke_id && 
-				jokeTag.tag_id &&
-				migratedJokeIds.includes(jokeTag.joke_id)  // Only include tags for migrated jokes
-			);
-
-			if (validJokesTags.length === 0) {
-				console.log(chalk.yellow("No valid joke tags found to process"));
-			}
-
-			// Log invalid or skipped entries for debugging
-			const invalidJokesTags = data.jokes_tags[0].filter(jokeTag => 
-				!jokeTag || 
-				!jokeTag.joke_id || 
-				!jokeTag.tag_id ||
-				!migratedJokeIds.includes(jokeTag.joke_id)  // Log skipped tags
-			);
-			
-			if (invalidJokesTags.length > 0) {
-				console.log(chalk.yellow(`Found ${invalidJokesTags.length} invalid or skipped joke tags:`));
-				console.log(chalk.yellow(`(${invalidJokesTags.length - invalidJokesTags.filter(jt => !jt || !jt.joke_id || !jt.tag_id).length} skipped due to joke limit)`));
-			}
-
-			// Similarly for jokes_authors, only include relationships for migrated jokes
-			const validJokesAuthors = data.jokes_authors[0].filter(ja =>
-				ja && ja.joke_id && ja.user_id &&
-				migratedJokeIds.includes(ja.joke_id)
-			);
-
-			// Log information about jokes_authors
-			if (validJokesAuthors.length === 0) {
-				console.log(chalk.yellow("No valid joke authors found to process"));
-			}
-
-			const invalidJokesAuthors = data.jokes_authors[0].filter(ja => 
-				!ja || !ja.joke_id || !ja.user_id ||
-				!migratedJokeIds.includes(ja.joke_id)
-			);
-
-			if (invalidJokesAuthors.length > 0) {
-				console.log(chalk.yellow(`Found ${invalidJokesAuthors.length} invalid or skipped joke authors:`));
-				console.log(chalk.yellow(`(${invalidJokesAuthors.length - invalidJokesAuthors.filter(ja => !ja || !ja.joke_id || !ja.user_id).length} skipped due to joke limit)`));
-			}
-
-			// Get migrated votes after votes table is populated
-			const [migratedVotes] = await connection_2.query('SELECT id FROM votes');
-			const migratedVoteIds = migratedVotes.map(vote => vote.id);
-
-			// Filter jokes_votes to include only valid relationships
-			const validJokesVotes = data.jokes_votes[0].filter(jokeVote => 
-				jokeVote && 
-				jokeVote.joke_id && 
-				jokeVote.vote_id &&
-				migratedJokeIds.includes(jokeVote.joke_id) &&
-				migratedVoteIds.includes(jokeVote.vote_id)  // Add check for valid vote IDs
-			);
-
-			// Filter votes_authors to include only valid relationships
-			const validVotesAuthors = data.votes_authors[0].filter(voteAuthor =>
-				voteAuthor &&
-				voteAuthor.vote_id &&
-				voteAuthor.user_id &&
-				migratedVoteIds.includes(voteAuthor.vote_id)
-			);
-
-			// Update the final Promise.all to use the filtered votes relationships
 			await Promise.all([
-				chunkAndRun(validJokesAuthors, "jokes_user_lnk"),
-				chunkAndRun(validJokesVotes, "jokes_votes_lnk"),
-				chunkAndRun(validJokesTags, "jokes_tags_lnk"),
+				chunkAndRun(data.jokes_authors[0], "jokes_user_lnk"),
+				chunkAndRun(data.jokes_votes[0], "jokes_votes_lnk"),
+				chunkAndRun(data.jokes_tags[0], "jokes_tags_lnk"),
 				chunkAndRun(data.users_roles[0], "up_users_role_lnk"),
-				chunkAndRun(validVotesAuthors, "votes_author_lnk"),  // Use filtered votes_authors
+				chunkAndRun(data.votes_authors[0], "votes_author_lnk"),
 				chunkAndRun(data.comments_authors[0], "plugin_comments_comments_author_user_lnk")
 			]);
 

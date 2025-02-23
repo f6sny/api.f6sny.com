@@ -27,10 +27,11 @@ export default factories.createCoreController('api::joke.joke', ({ strapi }) => 
         return document;
     },
     
-    count(ctx) {
+    async count(ctx) {
         var { query } = ctx.request
-        return strapi.query('api::joke.joke').count({ where: query });
-    }
+        return await strapi.query('api::joke.joke').count({ where: query });
+    },
+
 }));
 
 

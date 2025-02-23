@@ -14,5 +14,6 @@ export default ({ env }) => ({
   watchIgnoreFiles: [
     '**/utilities/**/migrate_db.ts', 
     '**/utilities/**/clean_database.ts',
+    '**/*.md',
   ],
 });

@@ -102,11 +102,11 @@
       "target": "api::joke.joke",
       "mappedBy": "user"
     },
-    "vote": {
+    "votes": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "oneToMany",
       "target": "api::vote.vote",
-      "inversedBy": "author"
+      "mappedBy": "author"
     }
   }
 }

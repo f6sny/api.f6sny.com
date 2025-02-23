@@ -7,7 +7,7 @@ export default {
         let joke = await strapi.services.jokes.findOne({id: joke_id});
 
         joke.tags.forEach(tag => {
-            if(tag.adult_content == true){
+            if(tag.restriction == 'strict'){
                 is_adult_joke = true;
             }
         });
