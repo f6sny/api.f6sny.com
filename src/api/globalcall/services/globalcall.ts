@@ -4,7 +4,12 @@ export default {
     async isAdultJoke(joke_id: number) {
         // get the joke object
         let is_adult_joke = false;
-        let joke = await strapi.services.jokes.findOne({id: joke_id});
+        let joke = await strapi.documents('api::joke.joke').findOne({
+            documentId: joke_id.toString(),
+            populate: ['tags']
+        });
+
+        console.log(joke);
 
         joke.tags.forEach(tag => {
             if(tag.restriction == 'strict'){

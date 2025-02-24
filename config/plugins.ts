@@ -20,6 +20,9 @@ export default ({ env }) => ({
             },
         },
     },
+    graphql: {
+        enabled: true,
+    }
 
 
 });

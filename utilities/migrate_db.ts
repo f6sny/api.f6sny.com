@@ -1,6 +1,6 @@
 namespace JokesDatabaseCleaner {
 	// Dependencies
-	var mysql = require("mysql2/promise");
+	const mysql = require("mysql2/promise");
 	const chalk = require('chalk');
 	const cliProgress = require('cli-progress');
 	const Table = require('cli-table3');
@@ -10,7 +10,7 @@ namespace JokesDatabaseCleaner {
 
 	// Configuration options
 	const CONFIG = {
-		CHUNK_SIZE: 200, // Single chunk size for all operations
+		CHUNK_SIZE: 500, // Single chunk size for all operations
 		
 		DATABASE: {
 			connectionLimit: 300,
@@ -25,7 +25,7 @@ namespace JokesDatabaseCleaner {
 				'jokes_tags_lnk',
 				'up_users_role_lnk',
 				'votes',
-				'jokes_votes_lnk',
+				'votes_joke_lnk',
 				'votes_author_lnk',
 			]
 		},
@@ -46,7 +46,7 @@ namespace JokesDatabaseCleaner {
 		'votes': chalk.red,
 		'jokes_user_lnk': chalk.greenBright,
 		'jokes_tags_lnk': chalk.blueBright,
-		'jokes_votes_lnk': chalk.magentaBright,
+		'votes_joke_lnk': chalk.magentaBright,
 		'up_users_role_lnk': chalk.yellowBright,
 		'votes_author_lnk': chalk.cyanBright,
 	};
@@ -145,6 +145,52 @@ namespace JokesDatabaseCleaner {
 		}
 	}
 
+	async function setupAdministratorRole() {
+		console.log(chalk.cyan('\nSetting up administrator role...'));
+		
+		try {
+			// Reset up_roles table
+			// query for id 3 and delete all rows
+			await connection_2.query('DELETE FROM up_roles WHERE id = 3');
+			
+
+			// reset up_permissions_role_lnk table
+			// query for id 3 and delete all rows
+			await connection_2.query('DELETE FROM up_permissions_role_lnk WHERE role_id = 3');
+
+			// create a document_id for the role
+			const document_id = createId();
+
+			// Add administrator role
+			const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
+			await connection_2.query(`
+				INSERT INTO up_roles (id, name, description, type, created_at, updated_at, published_at, document_id)
+				VALUES (3, 'Administrator', 'Moderators and admins with delete and mass update abilities', 'administrator', ?, ?, ?, ?)
+			`, [now, now, now, document_id]);
+			
+			console.log(chalk.green('✓ Administrator role created'));
+
+			// Get all permission IDs
+			const [permissions] = await connection_2.query('SELECT id FROM up_permissions');
+			console.log(chalk.cyan(`Found ${permissions.length} permissions to assign`));
+
+			// Add permissions to role
+			if (permissions.length > 0) {
+				const values = permissions.map(p => `(${p.id}, 3)`).join(',');
+				await connection_2.query(`
+					INSERT INTO up_permissions_role_lnk (permission_id, role_id)
+					VALUES ${values}
+				`);
+				console.log(chalk.green('✓ Permissions assigned to administrator role'));
+			}
+
+			console.log(chalk.green('✓ Administrator role setup completed'));
+		} catch (error) {
+			console.error(chalk.red('Error setting up administrator role:'), error);
+			throw error;
+		}
+	}
+
 	async function displayDataSummary(data: any) {
 		const table = new Table({
 			head: [
@@ -194,6 +240,9 @@ namespace JokesDatabaseCleaner {
 
 			// Migrate admin users first
 			await migrateAdminUsers();
+			
+			// Setup administrator role
+			await setupAdministratorRole();
 
 			const [
 				[tags], 
@@ -232,101 +281,186 @@ namespace JokesDatabaseCleaner {
 
 			// fix jokes parameters
 			data.jokes[0] = data.jokes[0].map((joke) => {
-				data.jokes_authors[0].push({  // Push to the inner array
-					joke_id: joke.id,
-					user_id: joke.author,
-				});
+				const processedJoke = {
+					...joke,
+					document_id: createId(),
+					published_at: new Date(joke.updated_at),
+					created_by_id: 1,
+					updated_by_id: 1,
+					joke_status: joke.status || 'pending'
+				};
 
-				renameObjectProperty(joke, "created_by", "created_by_id");
-				renameObjectProperty(joke, "updated_by", "updated_by_id");
-				renameObjectProperty(joke, "status", "joke_status");
-				joke.document_id = createId();
-				joke.created_by_id = 1;
-				joke.updated_by_id = 1;
+				// Create author relationship
+				if (joke.author) {
+					data.jokes_authors[0].push({
+						joke_id: joke.id,
+						user_id: joke.author
+					});
+				}
 
-				delete joke.author;
-				return joke;
+				// Rename properties
+				renameObjectProperty(processedJoke, "status", "joke_status");
+				delete processedJoke.created_by;
+				delete processedJoke.updated_by;
+				
+
+				// Ensure dates are proper Date objects
+				if (typeof processedJoke.updated_at === 'string') {
+					processedJoke.updated_at = new Date(processedJoke.updated_at);
+				}
+				if (typeof processedJoke.created_at === 'string') {
+					processedJoke.created_at = new Date(processedJoke.created_at);
+				}
+
+				// Remove old fields
+				delete processedJoke.author;
+
+				return processedJoke;
 			});
 
 			// fix user parameters
 			data.users[0] = data.users[0].map((user) => {
+				const processedUser = {
+					...user,
+					document_id: createId(),
+					published_at: new Date(user.updated_at),
+					created_by_id: 1,
+					updated_by_id: 1,
+					locale: null,
+					restriction: user.adult_content === 'hide' ? 'strict' : 'open',
+					display_name: `${user.first_name} ${user.last_name}`
+				};
+
+				// Create role relationship
 				data.users_roles[0].push({
 					user_id: user.id,
-					role_id: 1
-				})
+					role_id: user.role
+				});
 
-				delete user.role;
+				// Rename properties
+				renameObjectProperty(processedUser, "resetPasswordToken", "reset_password_token");
+				renameObjectProperty(processedUser, "created_by", "created_by_id");
+				renameObjectProperty(processedUser, "updated_by", "updated_by_id");
+				renameObjectProperty(processedUser, "confirmationToken", "confirmation_token");
+				renameObjectProperty(processedUser, "adult_content", "restriction");
 
-				if (user.adult_content == 'hide') {
-					user.adult_content = 'strict';
-				} else {
-					user.adult_content = 'open';
+				// Ensure dates are proper Date objects
+				if (typeof processedUser.updated_at === 'string') {
+					processedUser.updated_at = new Date(processedUser.updated_at);
+				}
+				if (typeof processedUser.created_at === 'string') {
+					processedUser.created_at = new Date(processedUser.created_at);
 				}
 
-				user.document_id = createId();
+				// Remove old fields
+				delete processedUser.role;
+				delete processedUser.first_name;
+				delete processedUser.last_name;
 
-				renameObjectProperty(user, "resetPasswordToken", "reset_password_token");
-				renameObjectProperty(user, "created_by", "created_by_id");
-				renameObjectProperty(user, "updated_by", "updated_by_id");
-				renameObjectProperty(user, "confirmationToken", "confirmation_token");
-				renameObjectProperty(user, "adult_content", "restriction");
-
-				// combine first_name and last_name into display_name
-				user.display_name = `${user.first_name} ${user.last_name}`;
-				delete user.first_name;
-				delete user.last_name;	
-
-				return user;
+				return processedUser;
 			})
+
+
+			function hashStringToInt(str: string): number {
+				let hash = 0;
+				for (let i = 0; i < str.length; i++) {
+				  hash = ((hash << 5) - hash) + str.charCodeAt(i); // shifting and adding char codes
+				  hash |= 0; // Convert to 32-bit integer
+				}
+				return hash;
+			  }
+			  
 
 			// fix comments complicated
 			data.comments[0] = data.comments[0].map((comment) => {
+				const processedComment = {
+					...comment,
+					document_id: createId(),
+					published_at: new Date(comment.updated_at),
+					blocked: 0,
+					blocked_thread: 0,
+					author_name: null,
+					author_email: null,
+					author_id: null,
+					is_admin_comment: null // Default to false
+				};
+
+				// Handle authorUser relationship
 				if (comment.authorUser) {
+					// Find the user in users array
+					const user = data.users_roles[0].find(u => u.user_id === comment.authorUser);
+					
+					// Set is_admin_comment if user has role 3
+					if (user && user.role_id === 3) {
+						processedComment.is_admin_comment = 1;
+					}
+
 					data.comments_authors[0].push({
 						user_id: comment.authorUser,
 						comment_id: comment.id
-					})
+					});
+					// Null out guest fields when we have an authenticated user
+					processedComment.author_name = null;
+					processedComment.author_email = null;
+				} else if (comment.authorEmail) {
+					// Generate author_id from email for guest comments
+					processedComment.author_id = Math.abs(hashStringToInt(comment.authorEmail));
+					processedComment.author_email = comment.authorEmail;
+					
+					// Set author_name to either existing name or email username
+					processedComment.author_name = comment.authorName || comment.authorEmail.split('@')[0];
 				}
 
-				renameObjectProperty(comment, "authorName", "author_name");
-				renameObjectProperty(comment, "authorEmail", "author_email");
-
-				comment.document_id = createId();
-
+				// Handle joke relationship
 				const joke = data.jokes[0].find(j => j.id === parseInt(comment.relatedSlug.split(':')[1]));
-				const jokeId = joke ? joke.document_id : null;
-				comment.related = `api::joke.joke:${jokeId}`;
-				delete comment.relatedSlug;
-				delete comment.blockedThread;
-				delete comment.blockReason;
-				delete comment.points;
-				delete comment.authorUser;
-				delete comment.authorType;
-				delete comment.authorId;
-				delete comment.threadOf;
-				delete comment.author;
-				delete comment.created_by;
-				delete comment.approvalStatus;
-				delete comment.updated_by;
-				delete comment.authorAvatar;
+				processedComment.related = joke ? `api::joke.joke:${joke.document_id}` : null;
 
-				return comment;
+				// Remove old fields
+				delete processedComment.relatedSlug;
+				delete processedComment.blockedThread;
+				delete processedComment.blockReason;
+				delete processedComment.points;
+				delete processedComment.authorUser;
+				delete processedComment.authorType;
+				delete processedComment.authorId;
+				delete processedComment.threadOf;
+				delete processedComment.author;
+				delete processedComment.created_by;
+				delete processedComment.approvalStatus;
+				delete processedComment.updated_by;
+				delete processedComment.authorAvatar;
+				delete processedComment.authorName;
+				delete processedComment.authorEmail;
+
+				return processedComment;
 			})
 
 			// fix tags
 			data.tags[0] = data.tags[0].map((tag) => {
-				if (tag.adult_content == 'hide') {
-					tag.adult_content = 'strict';
-				} else {
-					tag.adult_content = 'open';
+				const processedTag = {
+					...tag,
+					adult_content: tag.adult_content ? 'strict' : 'open',
+					document_id: createId(),
+					published_at: new Date(tag.updated_at), // Ensure it's a proper Date object
+					created_by_id: 1,
+					updated_by_id: 1,
+					locale: null
+				};
+
+				// Rename properties
+				renameObjectProperty(processedTag, "adult_content", "restriction");
+				renameObjectProperty(processedTag, "created_by", "created_by_id");
+				renameObjectProperty(processedTag, "updated_by", "updated_by_id");
+
+				// Ensure dates are proper Date objects
+				if (typeof processedTag.updated_at === 'string') {
+					processedTag.updated_at = new Date(processedTag.updated_at);
+				}
+				if (typeof processedTag.created_at === 'string') {
+					processedTag.created_at = new Date(processedTag.created_at);
 				}
 
-				renameObjectProperty(tag, "adult_content", "restriction");
-				renameObjectProperty(tag, "created_by", "created_by_id");
-				renameObjectProperty(tag, "updated_by", "updated_by_id");
-				tag.document_id = createId();
-
-				return tag;
+				return processedTag;
 			})
 
 			// fix pages
@@ -334,6 +468,9 @@ namespace JokesDatabaseCleaner {
 				renameObjectProperty(page, "created_by", "created_by_id");
 				renameObjectProperty(page, "updated_by", "updated_by_id");
 				page.document_id = createId();
+				page.published_at = page.updated_at;
+				page.created_by_id = 1;
+				page.updated_by_id = 1;
 
 				return page;
 			})
@@ -369,6 +506,7 @@ namespace JokesDatabaseCleaner {
 				// Set all user reference fields to null
 				vote.created_by_id = null;
 				vote.updated_by_id = null;
+				vote.published_at = vote.updated_at;
 				delete vote.author;
 
 				return vote;
@@ -427,7 +565,7 @@ namespace JokesDatabaseCleaner {
 
 			await Promise.all([
 				chunkAndRun(data.jokes_authors[0], "jokes_user_lnk"),
-				chunkAndRun(data.jokes_votes[0], "jokes_votes_lnk"),
+				chunkAndRun(data.jokes_votes[0], "votes_joke_lnk"),
 				chunkAndRun(data.jokes_tags[0], "jokes_tags_lnk"),
 				chunkAndRun(data.users_roles[0], "up_users_role_lnk"),
 				chunkAndRun(data.votes_authors[0], "votes_author_lnk"),
@@ -451,19 +589,17 @@ namespace JokesDatabaseCleaner {
 	async function chunkAndRun(array: Array<any>, table_name: string, reset_table_content: boolean = false) {
 		console.log(`Chunking and running ${table_name}`);
 		const tableColor = getTableColor(table_name);
-		
+
 		if (reset_table_content) {
 			resetTablesContent(table_name);
 		}
 
-		// Add check for empty array
 		if (!array || array.length === 0) {
 			console.log(chalk.yellow(`No data to process for ${table_name}`));
 			return;
 		}
 
 		const firstRow = array[0];
-		// Add check for undefined first row
 		if (!firstRow) {
 			console.log(chalk.yellow(`First row is undefined for ${table_name}`));
 			return;
@@ -472,11 +608,8 @@ namespace JokesDatabaseCleaner {
 		const columns = Object.keys(firstRow);
 		const placeholders = columns.map(() => '?').join(', ');
 		const columnsList = columns.join(', ');
-		const sql_statement = `INSERT INTO ${table_name} (${columnsList}) VALUES (${placeholders})`;
+		const sql_statement = `INSERT INTO \`${table_name}\` (${columnsList}) VALUES (${placeholders})`;
 		
-		const stmt = await connection_2.prepare(sql_statement);
-
-		// Create a progress bar in the multibar container
 		const progressBar = multibar.create(array.length, 0, {
 			contentType: tableColor(table_name.padEnd(20)),
 			chunkSize: CONFIG.CHUNK_SIZE,
@@ -487,25 +620,99 @@ namespace JokesDatabaseCleaner {
 		try {
 			let count = 1;
 			const totalBatches = Math.ceil(array.length / CONFIG.CHUNK_SIZE);
-			
+
 			for (let i = 0; i < array.length; i += CONFIG.CHUNK_SIZE) {
 				const chunk = array.slice(i, i + CONFIG.CHUNK_SIZE);
-				await Promise.all(chunk.map(data => {
-					const values = columns.map(col => data[col]);
-					return stmt.execute(values);
-				}));
+				const valuesToInsert = [];
+
+				for (const data of chunk) {
+					const rowValues = columns.map(col => {
+						// Handle null values and undefined
+						if (data[col] === undefined || data[col] === null) return null;
+						
+						// Convert Date objects to MySQL datetime format
+						if (data[col] instanceof Date) {
+							return data[col].toISOString().slice(0, 19).replace('T', ' ');
+						}
+						
+						// Handle string values - escape special characters and line breaks
+						if (typeof data[col] === 'string') {
+							return data[col]
+								.replace(/[\0\x08\x09\x1a\n\r"'\\\%]/g, char => {
+									switch (char) {
+										case "\0":
+											return "\\0";
+										case "\x08":
+											return "\\b";
+										case "\x09":
+											return "\\t";
+										case "\x1a":
+											return "\\z";
+										case "\n":
+											return "\\n";
+										case "\r":
+											return "\\r";
+										case "\"":
+										case "'":
+										case "\\":
+										case "%":
+											return "\\" + char; // prepends a backslash to backslash, percent, and double/single quotes
+										default:
+											return char;
+									}
+								});
+						}
+						
+						// Return other types as is
+						return data[col];
+					});
+					valuesToInsert.push(rowValues);
+				}
+
+				if (valuesToInsert.length > 0) {
+					let insertQuery: string; // Declare outside try block
+					try {
+						const batchConnection = await pool2.getConnection();
+						try {
+							// Build the query with properly escaped values
+							const values = valuesToInsert.map(row => 
+								`(${row.map(val => 
+									val === null ? 'NULL' : 
+									typeof val === 'string' ? `'${val}'` : 
+									val
+								).join(',')})`
+							).join(',');
+							
+							insertQuery = `INSERT INTO \`${table_name}\` (${columnsList}) VALUES ${values}`;
+							
+							// For debugging
+							if (table_name === 'jokes') {
+								//console.log('First row being inserted:', JSON.stringify(valuesToInsert[0], null, 2));
+							}
+							
+							await batchConnection.query(insertQuery);
+						} finally {
+							batchConnection.release();
+						}
+					} catch (batchError) {
+						console.error(`\nError inserting batch into ${tableColor(table_name)}:`, batchError);
+						console.log("Full error details:", JSON.stringify(batchError, null, 2));
+						console.log("Problem query:", insertQuery?.substring(0, 1000) + '...');
+						throw batchError;
+					}
+				}
+
 				progressBar.update(i + chunk.length, { batch: `${count}/${totalBatches}` });
 				count++;
 			}
-			
+
 			progressBar.update(array.length, { batch: `${totalBatches}/${totalBatches}` });
 		} catch (error) {
-			console.error(`\nError inserting into ${tableColor(table_name)}:`, error);
+			console.error(`\nError in chunkAndRun for ${tableColor(table_name)}:`, error);
 			throw error;
-		} finally {
-			await stmt.close();
 		}
 	}
+	
 
 	function renameObjectProperty(obj, oldProperty, newProperty) {
 		Object.defineProperty(

@@ -4,36 +4,7 @@
 
 import { factories } from '@strapi/strapi'
 
-export default factories.createCoreController('api::joke.joke', ({ strapi }) => ({
-    async find(ctx) {
-        // Add populate and filters to query
-        ctx.query = {
-            ...ctx.query,
-            populate: ['votes', 'tags'], 
-        };
-
-        // Call the default parent controller action
-        const { data, meta } = await super.find(ctx);
-        return { data, meta };
-
-    },
-    
-    async findOne(ctx) {
-        const { id } = ctx.params;
-        const document = await strapi.documents('api::joke.joke').findOne({
-            documentId: id,
-            populate: ['votes', 'tags']
-        });
-        return document;
-    },
-    
-    async count(ctx) {
-        var { query } = ctx.request
-        return await strapi.query('api::joke.joke').count({ where: query });
-    },
-
-}));
-
+export default factories.createCoreController('api::joke.joke');
 
 
 // A function to the jokes that do not belong to a censored tag, all the calls 

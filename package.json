@@ -14,16 +14,18 @@
   "dependencies": {
     "@fingerprintjs/fingerprintjs": "^4.6.0",
     "@flowdegree/arabic-strings": "^2.0.0",
-    "@strapi/plugin-documentation": "^5.9.0",
-    "@strapi/plugin-graphql": "^5.9.0",
+    "@strapi/plugin-documentation": "^5.10.3",
+    "@strapi/plugin-graphql": "^5.10.3",
     "@strapi/plugin-users-permissions": "5.10.3",
     "@strapi/strapi": "5.10.3",
+    "@strapi/typescript-utils": "^5.10.3",
+    "codemirror": "6",
     "mysql2": "^3.12.0",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "6.22.3",
     "strapi-plugin-comments": "3.0.8",
-    "styled-components": "6.1.8"
+    "styled-components": "6.1.13"
   },
   "author": {
     "name": "Mohannad F. Otaibi"
@@ -35,16 +37,22 @@
     "node": ">=18.0.0 <=22.x.x",
     "npm": ">=6.0.0"
   },
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.3.3"
+    }
+  },
   "license": "MIT",
   "devDependencies": {
     "@paralleldrive/cuid2": "^2.2.2",
-    "@strapi/typescript-utils": "^5.10.2",
+    "@strapi/types": "^5.10.3",
     "@types/cli-progress": "^3.11.6",
+    "@types/node": "^22.13.5",
     "@types/react": "^18.3.1",
     "chalk": "^4.1.2",
     "cli-progress": "^3.12.0",
     "cli-table3": "^0.6.5",
-    "colors": "^1.4.0",
-    "prompts": "^2.4.2"
+    "prompts": "^2.4.2",
+    "typescript": "5.3.3"
   }
 }
