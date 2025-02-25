@@ -16,8 +16,8 @@ WORKDIR /opt/
 COPY package.json pnpm-lock.yaml* ./
 # Install node-gyp globally
 RUN pnpm add -g node-gyp
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prod
+# Install all dependencies including dev dependencies for build
+RUN pnpm install --frozen-lockfile
 ENV PATH=/opt/node_modules/.bin:$PATH
 WORKDIR /opt/app
 COPY . .
