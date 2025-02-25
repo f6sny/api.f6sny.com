@@ -96,16 +96,16 @@
       "default": "male",
       "required": true
     },
-    "jokes": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::joke.joke",
-      "mappedBy": "user"
-    },
     "votes": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::vote.vote",
+      "mappedBy": "author"
+    },
+    "jokes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::joke.joke",
       "mappedBy": "author"
     }
   }

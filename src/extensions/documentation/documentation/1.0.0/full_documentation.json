@@ -14,7 +14,7 @@
       "name": "Apache 2.0",
       "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
     },
-    "x-generation-date": "2025-02-24T21:55:12.501Z"
+    "x-generation-date": "2025-02-25T16:24:40.025Z"
   },
   "x-strapi-config": {
     "plugins": [
@@ -3573,7 +3573,7 @@
                   "example": "string or id"
                 }
               },
-              "user": {
+              "author": {
                 "oneOf": [
                   {
                     "type": "integer"
@@ -4330,7 +4330,7 @@
                                     "female"
                                   ]
                                 },
-                                "jokes": {
+                                "votes": {
                                   "type": "array",
                                   "items": {
                                     "type": "object",
@@ -4344,7 +4344,7 @@
                                     }
                                   }
                                 },
-                                "votes": {
+                                "jokes": {
                                   "type": "array",
                                   "items": {
                                     "type": "object",
@@ -4468,7 +4468,7 @@
                           }
                         }
                       },
-                      "user": {
+                      "author": {
                         "type": "object",
                         "properties": {
                           "id": {
@@ -4609,7 +4609,7 @@
               }
             }
           },
-          "user": {
+          "author": {
             "type": "object",
             "properties": {
               "id": {
@@ -5214,7 +5214,7 @@
                         }
                       }
                     },
-                    "user": {
+                    "author": {
                       "type": "object",
                       "properties": {
                         "id": {
@@ -5437,7 +5437,7 @@
                             "female"
                           ]
                         },
-                        "jokes": {
+                        "votes": {
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -5451,7 +5451,7 @@
                             }
                           }
                         },
-                        "votes": {
+                        "jokes": {
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -6639,7 +6639,7 @@
                               "female"
                             ]
                           },
-                          "jokes": {
+                          "votes": {
                             "type": "array",
                             "items": {
                               "type": "object",
@@ -6653,7 +6653,7 @@
                               }
                             }
                           },
-                          "votes": {
+                          "jokes": {
                             "type": "array",
                             "items": {
                               "type": "object",
@@ -6777,7 +6777,7 @@
                     }
                   }
                 },
-                "user": {
+                "author": {
                   "type": "object",
                   "properties": {
                     "id": {
@@ -7771,7 +7771,7 @@
                             "female"
                           ]
                         },
-                        "jokes": {
+                        "votes": {
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -7785,7 +7785,7 @@
                             }
                           }
                         },
-                        "votes": {
+                        "jokes": {
                           "type": "array",
                           "items": {
                             "type": "object",
@@ -7909,7 +7909,7 @@
                   }
                 }
               },
-              "user": {
+              "author": {
                 "type": "object",
                 "properties": {
                   "id": {

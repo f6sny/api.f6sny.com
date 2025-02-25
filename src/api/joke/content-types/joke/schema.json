@@ -47,7 +47,7 @@
       "target": "api::vote.vote",
       "mappedBy": "joke"
     },
-    "user": {
+    "author": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",

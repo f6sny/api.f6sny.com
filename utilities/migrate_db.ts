@@ -21,7 +21,7 @@ namespace JokesDatabaseCleaner {
 				'jokes',
 				'plugin_comments_comments',
 				'plugin_comments_comments_author_user_lnk',
-				'jokes_user_lnk',
+				'jokes_author_lnk',
 				'jokes_tags_lnk',
 				'up_users_role_lnk',
 				'votes',
@@ -44,7 +44,7 @@ namespace JokesDatabaseCleaner {
 		'tags': chalk.yellow,
 		'jokes': chalk.blue,
 		'votes': chalk.red,
-		'jokes_user_lnk': chalk.greenBright,
+		'jokes_author_lnk': chalk.greenBright,
 		'jokes_tags_lnk': chalk.blueBright,
 		'votes_joke_lnk': chalk.magentaBright,
 		'up_users_role_lnk': chalk.yellowBright,
@@ -564,7 +564,7 @@ namespace JokesDatabaseCleaner {
 			console.log('─'.repeat(100));
 
 			await Promise.all([
-				chunkAndRun(data.jokes_authors[0], "jokes_user_lnk"),
+				chunkAndRun(data.jokes_authors[0], "jokes_author_lnk"),
 				chunkAndRun(data.jokes_votes[0], "votes_joke_lnk"),
 				chunkAndRun(data.jokes_tags[0], "jokes_tags_lnk"),
 				chunkAndRun(data.users_roles[0], "up_users_role_lnk"),
