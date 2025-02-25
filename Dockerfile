@@ -6,9 +6,11 @@ ENV NODE_ENV=${NODE_ENV}
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV SHELL=/bin/sh
 ENV PNPM_HOME=/root/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN pnpm setup
+# Create PNPM_HOME directory instead of using pnpm setup
+RUN mkdir -p $PNPM_HOME
 
 WORKDIR /opt/
 COPY package.json pnpm-lock.yaml* ./
@@ -29,9 +31,11 @@ ENV NODE_ENV=${NODE_ENV}
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV SHELL=/bin/sh
 ENV PNPM_HOME=/root/.local/share/pnpm
 ENV PATH=$PNPM_HOME:$PATH
-RUN pnpm setup
+# Create PNPM_HOME directory instead of using pnpm setup
+RUN mkdir -p $PNPM_HOME
 
 WORKDIR /opt/
 COPY --from=build /opt/node_modules ./node_modules
