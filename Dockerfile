@@ -6,10 +6,14 @@ ENV NODE_ENV=${NODE_ENV}
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV PNPM_HOME=/root/.local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN pnpm setup
 
 WORKDIR /opt/
 COPY package.json pnpm-lock.yaml* ./
-RUN pnpm install -g node-gyp
+# Install node-gyp globally
+RUN pnpm add -g node-gyp
 # Install dependencies
 RUN pnpm install --frozen-lockfile --prod
 ENV PATH=/opt/node_modules/.bin:$PATH
@@ -25,6 +29,9 @@ ENV NODE_ENV=${NODE_ENV}
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV PNPM_HOME=/root/.local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+RUN pnpm setup
 
 WORKDIR /opt/
 COPY --from=build /opt/node_modules ./node_modules
