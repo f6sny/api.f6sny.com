@@ -15,5 +15,8 @@ export default ({ env }) => ({
     '**/utilities/**/migrate_db.ts', 
     '**/utilities/**/clean_database.ts',
     '**/*.md',
+    '**/*.yaml',
+    '**/*.yml',
+    'Dockerfile',
   ],
 });
