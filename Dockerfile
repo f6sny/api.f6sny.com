@@ -1,49 +1,23 @@
-# Creating multi-stage build for production
-FROM node:18-alpine as build
-RUN apk update && apk add --no-cache build-base gcc autoconf automake zlib-dev libpng-dev vips-dev git > /dev/null 2>&1
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
+# Reference: https://pnpm.io/docker#example-1-build-a-bundle-in-a-docker-container
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-ENV SHELL=/bin/sh
-ENV PNPM_HOME=/root/.local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-# Create PNPM_HOME directory instead of using pnpm setup
-RUN mkdir -p $PNPM_HOME
+FROM node:18-slim AS base
+RUN apt-get update && \
+    apt-get install curl -y --no-install-recommends
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+COPY . /app
+WORKDIR /app
 
-WORKDIR /opt/
-COPY package.json pnpm-lock.yaml* ./
-# Install node-gyp globally
-RUN pnpm add -g node-gyp
-# Install all dependencies including dev dependencies for build
-RUN pnpm install --frozen-lockfile
-ENV PATH=/opt/node_modules/.bin:$PATH
-WORKDIR /opt/app
-COPY . .
-RUN pnpm run build
+FROM base AS prod-deps
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store  pnpm i -P --frozen-lockfile
 
-# Creating final production image
-FROM node:18-alpine
-RUN apk add --no-cache vips-dev
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
+FROM base AS build
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store  pnpm i --frozen-lockfile
+RUN pnpm build
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
-ENV SHELL=/bin/sh
-ENV PNPM_HOME=/root/.local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
-# Create PNPM_HOME directory instead of using pnpm setup
-RUN mkdir -p $PNPM_HOME
-
-WORKDIR /opt/
-COPY --from=build /opt/node_modules ./node_modules
-WORKDIR /opt/app
-COPY --from=build /opt/app ./
-ENV PATH=/opt/node_modules/.bin:$PATH
-
-RUN chown -R node:node /opt/app
-USER node
+FROM base
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
 EXPOSE 1337
-CMD ["pnpm", "run", "start"]
+CMD ["npm", "start"]
