@@ -107,6 +107,15 @@
       "relation": "oneToMany",
       "target": "api::joke.joke",
       "mappedBy": "author"
+    },
+    "avatar": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files"
+      ]
     }
   }
 }

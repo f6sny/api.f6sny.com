@@ -1,5 +1,5 @@
 export default ({ env }) => {
-  const client = env('DATABASE_CLIENT', 'myql');
+  const client = env('DATABASE_CLIENT', 'mysql');
 
   const connections = {
     mysql: {
