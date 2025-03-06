@@ -5,6 +5,7 @@ export default ({ env }) => ({
     keys: env.array('APP_KEYS'),
   },
   url: env('URL', 'http://localhost:1337'),
+  proxy: true,
   logger:{
     startup:{
       enabled: false, 
