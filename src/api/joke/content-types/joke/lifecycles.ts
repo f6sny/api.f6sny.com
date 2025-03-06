@@ -22,14 +22,14 @@ export default {
   beforeCreate(event) {
     console.log('beforeCreate');
     if (event.params.data.content) {
-      event.params.data = strapi.service("api::globalcall.globalcall").generate_slug(event.params.data.content);
+      event.params.data.slug = strapi.service("api::globalcall.globalcall").generate_slug(event.params.data.content);
     }
   },
 
   beforeUpdate(event) {
     console.log('beforeUpdate');
     if (event.params.data.content) {
-      event.params.data = strapi.service("api::globalcall.globalcall").generate_slug(event.params.data.content);
+      event.params.data.slug = strapi.service("api::globalcall.globalcall").generate_slug(event.params.data.content);
     }
   },
 };

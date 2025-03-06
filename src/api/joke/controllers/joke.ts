@@ -4,10 +4,39 @@
 
 import { factories } from '@strapi/strapi'
 
-export default factories.createCoreController('api::joke.joke');
+export default factories.createCoreController('api::joke.joke', ({ strapi }) => ({
+    async getPendingJokes(ctx) {
+      const { user, fingerprint } = ctx.state;
+      const baseFilters: any = {
+        joke_status: 'pending'
+      };
+  
+      if (user || fingerprint) {
+        // First, fetch votes made by the user or fingerprint.
+        // This assumes you have a vote content type (e.g., "api::vote.vote") with a relation to the joke.
+        const voteFilters = user ? { author: user.id } : { fingerprint: fingerprint };
+  
+        const votedRecords = await strapi.documents('api::vote.vote').findMany({
+          filters: voteFilters,
+          populate: ['joke'],
+        });
+  
+        const votedJokeIds = votedRecords.map(record => record.joke.documentId);
+  
+        console.log(votedJokeIds);
+        // Exclude jokes that have been voted on.
+        baseFilters.documentId = { $notIn: votedJokeIds }; // Added filter to skip jokes already voted on.
+      }
+  
+      const jokes = await strapi.db.query('api::joke.joke').findMany({
+        where: baseFilters,
+      });
+  
+      return jokes;
+    }
+  }));
 
-
-// A function to the jokes that do not belong to a censored tag, all the calls 
+// A function to the jokes that do not belong to a censored tag, all the calls
 // here should return without censored tags unless safe_content is set to false
 
 // The create function will assign id 88 to the author if the user is not authenticated
@@ -22,7 +51,7 @@ export default factories.createCoreController('api::joke.joke');
 // the vote function will also check if the user has already voted on the joke, if so, it will throw an error
 // the vote function will check if admin is voting, if so, it will force the joke to be active or deleted without any vote count
 // the vote function will return the joke with the updated vote count and status
-// the vote function will append an entry to the remarks field of the joke with the following format, 
+// the vote function will append an entry to the remarks field of the joke with the following format,
 // the vote is {vote_value}, total ups: {votes_up_count}, total downs:  {votes_down_count}, joke_acceptance_threshold is: {joke_acceptance_threshold}, status should be:  {targeted_joke_for_vote.status} at: {Date.now()}
 
 // the update function will only update the content field of the joke
