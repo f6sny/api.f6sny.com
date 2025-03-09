@@ -21,13 +21,13 @@ ingress:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"         # new annotation
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"     # new annotation
   hosts:
-    - host: api-next.f6sny.com                            # override host
+    - host: api.f6sny.com                            # override host
       paths:
         - path: /                                          # override path
           pathType: ImplementationSpecific                # override pathType
   tls:
     - hosts:
-        - api-next.f6sny.com                             # TLS host
+        - api.f6sny.com                             # TLS host
       secretName: f6sny-api-v5-tls                           # TLS secret
 
 resources:
