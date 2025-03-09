@@ -565,12 +565,14 @@ namespace JokesDatabaseCleaner {
 
 			await Promise.all([
 				chunkAndRun(data.jokes_authors[0], "jokes_author_lnk"),
-				chunkAndRun(data.jokes_votes[0], "votes_joke_lnk"),
 				chunkAndRun(data.jokes_tags[0], "jokes_tags_lnk"),
 				chunkAndRun(data.users_roles[0], "up_users_role_lnk"),
 				chunkAndRun(data.votes_authors[0], "votes_author_lnk"),
 				chunkAndRun(data.comments_authors[0], "plugin_comments_comments_author_user_lnk")
 			]);
+
+			await chunkAndRun(data.jokes_votes[0], "votes_joke_lnk"),
+
 
 			multibar.stop();
 			console.log(chalk.green("\n✓ Migration completed successfully"));
@@ -587,7 +589,9 @@ namespace JokesDatabaseCleaner {
 	}
 
 	async function chunkAndRun(array: Array<any>, table_name: string, reset_table_content: boolean = false) {
-		console.log(`Chunking and running ${table_name}`);
+		if (table_name === 'votes_joke_lnk') {
+			console.log(`Chunking and running ${table_name}`);
+		}
 		const tableColor = getTableColor(table_name);
 
 		if (reset_table_content) {
@@ -608,7 +612,10 @@ namespace JokesDatabaseCleaner {
 		const columns = Object.keys(firstRow);
 		const placeholders = columns.map(() => '?').join(', ');
 		const columnsList = columns.join(', ');
-		const sql_statement = `INSERT INTO \`${table_name}\` (${columnsList}) VALUES (${placeholders})`;
+		if (table_name === 'votes_joke_lnk') {
+			const sql_statement = `INSERT INTO \`${table_name}\` (${columnsList}) VALUES (${placeholders})`;
+			console.log(sql_statement);
+		}
 		
 		const progressBar = multibar.create(array.length, 0, {
 			contentType: tableColor(table_name.padEnd(20)),
