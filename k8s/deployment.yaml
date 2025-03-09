@@ -1,0 +1,43 @@
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: f6sny-api-v5
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          app: f6sny-api-v5
+          component: backend
+      template:
+        metadata:
+          labels:
+            app: f6sny-api-v5
+            component: backend
+        spec:
+          containers:
+          - name: f6sny-api-v5
+            image: ghcr.io/f6sny/api.f6sny.com:latest
+            ports:
+              - containerPort: 1337
+            envFrom:
+              - secretRef:
+                  name: f6sny-api-secrets
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+            readinessProbe:
+              httpGet:
+                path: /_health
+                port: 1337
+              initialDelaySeconds: 30
+              periodSeconds: 10
+            livenessProbe:
+              httpGet:
+                path: /_health
+                port: 1337
+              initialDelaySeconds: 60
+              periodSeconds: 20
