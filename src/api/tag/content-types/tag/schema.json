@@ -1,0 +1,50 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tags",
+  "info": {
+    "singularName": "tag",
+    "pluralName": "tags",
+    "displayName": "Tag",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "description": {
+      "type": "string"
+    },
+    "hex_color": {
+      "type": "string",
+      "maxLength": 7,
+      "minLength": 7
+    },
+    "slug": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "jokes": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::joke.joke",
+      "mappedBy": "tags"
+    },
+    "restriction": {
+      "type": "enumeration",
+      "enum": [
+        "strict",
+        "moderate",
+        "open"
+      ],
+      "default": "open",
+      "required": true
+    }
+  }
+}

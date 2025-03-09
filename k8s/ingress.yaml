@@ -1,0 +1,25 @@
+    apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: main-ingress
+      annotations:
+        cert-manager.io/cluster-issuer: http01-clusterissuer
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    spec:
+      ingressClassName: nginx
+      tls:
+        - hosts:
+            - f6sny-api-v5.f6sny.com
+          secretName: f6sny-api-v5-tls
+      rules:
+      - host: f6sny-api-v5.f6sny.com
+        http:
+          paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: f6sny-api-v5
+                  port:
+                    number: 1337

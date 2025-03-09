@@ -31,7 +31,6 @@ $RECYCLE.BIN/
 *.msm
 *.msp
 
-config/env/dev*
 
 ############################
 # Packages
@@ -111,5 +110,6 @@ coverage
 license.txt
 exports
 *.cache
+dist
 build
 .strapi-updater.json

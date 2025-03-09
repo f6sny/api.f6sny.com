@@ -1,40 +1,60 @@
 {
-  "name": "js-strapi-f-6-sny-backend",
-  "private": true,
-  "version": "1.1.0",
+  "name": "f6sny",
+  "private": false,
+  "version": "5.0.2",
   "description": "A Strapi application",
   "scripts": {
     "develop": "strapi develop",
     "start": "strapi start",
     "build": "strapi build",
-    "strapi": "strapi"
+    "strapi": "strapi",
+    "migrate": "ts-node utilities/migrate_db.ts",
+    "jokes:clean": "ts-node utilities/clean_database.ts"
   },
   "dependencies": {
-    "knex": "0.21.18",
-    "mysql": "latest",
-    "slugify": "1.4.6",
-    "strapi": "3.6.9",
-    "strapi-admin": "3.6.9",
-    "strapi-connector-bookshelf": "3.6.9",
-    "strapi-plugin-comments": "1.0.4",
-    "strapi-plugin-content-manager": "3.6.9",
-    "strapi-plugin-content-type-builder": "3.6.9",
-    "strapi-plugin-email": "3.6.9",
-    "strapi-plugin-entity-relationship-chart": "3.1.0",
-    "strapi-plugin-meilisearch": "0.5.1",
-    "strapi-plugin-upload": "3.6.9",
-    "strapi-plugin-users-permissions": "3.6.9",
-    "strapi-utils": "3.6.9"
+    "@fingerprintjs/fingerprintjs": "^4.6.0",
+    "@flowdegree/arabic-strings": "^2.0.0",
+    "@strapi/plugin-documentation": "^5.10.3",
+    "@strapi/plugin-graphql": "^5.10.3",
+    "@strapi/plugin-users-permissions": "5.10.3",
+    "@strapi/provider-upload-aws-s3": "^5.10.4",
+    "@strapi/strapi": "5.10.3",
+    "@strapi/typescript-utils": "^5.10.3",
+    "codemirror": "6",
+    "mysql2": "^3.12.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.22.3",
+    "strapi-plugin-comments": "3.0.8",
+    "strapi-provider-email-resend": "^1.0.4",
+    "styled-components": "6.1.13"
   },
   "author": {
     "name": "Mohannad F. Otaibi"
   },
   "strapi": {
-    "uuid": "8524a2b0-1efd-4ec1-a733-13c3fdd510a7"
+    "uuid": "815529dd-ea1d-434c-a483-b13a541c6060"
   },
   "engines": {
-    "node": ">=10.16.0 <=14.x.x",
+    "node": ">=18.0.0 <=22.x.x",
     "npm": ">=6.0.0"
   },
-  "license": "MIT"
+  "pnpm": {
+    "overrides": {
+      "typescript": "5.3.3"
+    }
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@paralleldrive/cuid2": "^2.2.2",
+    "@strapi/types": "^5.10.3",
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^22.13.5",
+    "@types/react": "^18.3.1",
+    "chalk": "^4.1.2",
+    "cli-progress": "^3.12.0",
+    "cli-table3": "^0.6.5",
+    "prompts": "^2.4.2",
+    "typescript": "5.3.3"
+  }
 }

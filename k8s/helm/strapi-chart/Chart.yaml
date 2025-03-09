@@ -1,0 +1,9 @@
+apiVersion: v2
+name: strapi-chart
+description: A Helm chart for Strapi API
+
+type: application
+
+version: 0.1.1
+
+appVersion: "1.16.0"

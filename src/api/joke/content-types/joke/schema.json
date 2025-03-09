@@ -1,0 +1,57 @@
+{
+  "kind": "collectionType",
+  "collectionName": "jokes",
+  "info": {
+    "singularName": "joke",
+    "pluralName": "jokes",
+    "displayName": "Joke",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "content": {
+      "type": "text",
+      "required": true
+    },
+    "joke_status": {
+      "type": "enumeration",
+      "enum": [
+        "active",
+        "pending",
+        "reported",
+        "deleted"
+      ],
+      "default": "pending",
+      "required": true
+    },
+    "slug": {
+      "type": "string",
+      "unique": true
+    },
+    "remarks": {
+      "type": "text",
+      "private": true
+    },
+    "tags": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::tag.tag",
+      "inversedBy": "jokes"
+    },
+    "votes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::vote.vote",
+      "mappedBy": "joke"
+    },
+    "author": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "jokes"
+    }
+  }
+}
