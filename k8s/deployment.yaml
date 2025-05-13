@@ -20,8 +20,6 @@ spec:
         envFrom:
         - secretRef:
             name: f6sny-api-v5-secrets
-        - configMapRef:
-            name: f6sny-api-v5-configmap
         resources:
           requests:
             memory: "128Mi"
